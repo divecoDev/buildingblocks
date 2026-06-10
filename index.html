@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torre de Control — Ritmo Operativo Regional</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#7d8590;--green:#3fb950;--green-bg:#0d2b1a;--yellow:#d29922;--yellow-bg:#2b1e0a;--red:#f85149;--red-bg:#2b0e0e;--blue:#388bfd;--blue-bg:#0c1f3a;--accent:#58a6ff;--r:8px;--gap:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:17px;font-weight:700;color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:8px}
+.badge-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--muted)}
+.pill-blue{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.btn{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;border:none}
+.btn-accent{background:var(--accent);color:#000}
+.btn-green{background:var(--green);color:#000}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.page{display:none;padding:14px 20px}
+.page.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:14px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color .2s,transform .1s;position:relative;overflow:hidden}
+.kpi-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.corp::before{background:linear-gradient(90deg,#58a6ff,#388bfd)}
+.kpi-card.camas::before{background:linear-gradient(90deg,#3fb950,#2ea043)}
+.kpi-card.retail::before{background:linear-gradient(90deg,#d29922,#bb8009)}
+.kpi-card.complementos::before{background:linear-gradient(90deg,#bc8cff,#8957e5)}
+.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px}
+.kpi-val{font-size:22px;font-weight:700;line-height:1;margin-bottom:3px}
+.kpi-sub{font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.kpi-sem{position:absolute;top:13px;right:13px;font-size:17px}
+.kpi-hint{font-size:10px;color:var(--accent);margin-top:5px;opacity:0;transition:opacity .2s}
+.kpi-card:hover .kpi-hint{opacity:1}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sec-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.sec-badge{font-size:10px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.tab-bar{display:flex;gap:4px}
+.tab{background:none;border:1px solid var(--border);border-radius:5px;padding:4px 11px;cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+.toggle-group{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.toggle-btn{padding:4px 11px;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);border:none;background:none;transition:all .15s}
+.toggle-btn.active{background:var(--accent);color:#000}
+.country-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--gap);margin-bottom:14px}
+.country-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px;cursor:pointer;text-align:center;transition:all .15s}
+.country-btn:hover,.country-btn.active{border-color:var(--accent);background:var(--blue-bg)}
+.country-btn .cflag{font-size:20px;display:block;margin-bottom:3px}
+.country-btn .cname{font-size:11px;font-weight:600}
+.country-btn .cpct{font-size:12px;font-weight:700;margin-top:2px}
+.table-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:1200px}
+thead th{background:var(--surface2);padding:7px 9px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+thead th.grp{font-size:11px;font-weight:700;color:var(--text);padding:9px}
+thead th.c-meta{background:#0c1f3a}
+thead th.c-como{background:#0d2b1a}
+thead th.c-pror{background:#1a120d}
+thead th.c-seas{background:#0d1a1a}
+thead th.c-mom{background:#1a0d1a}
+thead th.c-blend{background:#1a1a0a}
+thead th.c-bb{background:#1a0e0e}
+thead th.c-cierre{background:#150d1a}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--surface2)}
+tbody tr:last-child{border-bottom:none}
+td{padding:8px 9px;text-align:center;vertical-align:middle}
+td.country-name{text-align:left;font-weight:600;white-space:nowrap;padding-left:12px}
+td.c-meta{background:#0c1f3a12}td.c-como{background:#0d2b1a12}td.c-pror{background:#1a120d12}td.c-seas{background:#0d1a1a12}td.c-mom{background:#1a0d1a12}td.c-blend{background:#1a1a0a15}td.c-bb{background:#1a0e0e12}td.c-cierre{background:#150d1a15}
+.num{font-variant-numeric:tabular-nums}
+.pos{color:var(--green)}.neg{color:var(--red)}.warn{color:var(--yellow)}
+.mini-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap}
+.bg-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
+.bg-yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow)}
+.bg-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red)}
+.trend-methods{display:flex;gap:4px;flex-direction:column;align-items:center}
+.method-row{display:flex;gap:3px;font-size:9px;color:var(--muted)}
+.method-val{font-size:10px;font-weight:600;color:var(--text)}
+.insights-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gap);margin-bottom:14px}
+.insight-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.insight-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.insight-title .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.insight-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)}
+.insight-row:last-child{border-bottom:none}
+.bi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:14px}
+.bi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.bi-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
+.bi-item{display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px}
+.bi-item:last-child{border-bottom:none}
+.bi-tag{font-size:10px;padding:1px 5px;border-radius:3px;margin-left:auto;white-space:nowrap}
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:14px}
+.chart-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px}
+.chart-container{height:180px;position:relative}
+.prob-bar{height:5px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:4px}
+.prob-fill{height:100%;border-radius:3px}
+.bb-cov-bar{width:50px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:4px}
+.bb-cov-fill{height:100%;border-radius:2px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:920px;max-width:96vw;max-height:90vh;overflow-y:auto}
+.modal-sm{max-width:660px}
+.modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:10}
+.modal-title{font-size:13px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer}
+.modal-body{padding:18px}
+.modal-tabs{display:flex;gap:3px;padding:0 18px;border-bottom:1px solid var(--border)}
+.modal-tab{padding:7px 13px;cursor:pointer;font-size:11px;border-bottom:2px solid transparent;color:var(--muted);transition:all .15s}
+.modal-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.form-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-group label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 9px;color:var(--text);font-size:12px;outline:none;transition:border-color .15s;width:100%}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent)}
+.form-section{font-size:11px;font-weight:700;color:var(--accent);margin:12px 0 7px;padding-bottom:3px;border-bottom:1px solid var(--border)}
+.form-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.drill-path{display:flex;gap:5px;align-items:center;margin-bottom:10px;font-size:12px;color:var(--muted)}
+.drill-path .crumb{cursor:pointer;color:var(--accent)}
+.drill-path .current{color:var(--text);font-weight:600}
+.info-box{background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--r);padding:10px 13px;font-size:11px;color:var(--blue);margin-bottom:12px}
+.warn-box{background:var(--yellow-bg);border:1px solid var(--yellow);border-radius:var(--r);padding:10px 13px;font-size:11px;color:var(--yellow);margin-bottom:12px}
+.method-legend{display:flex;gap:12px;font-size:10px;color:var(--muted);align-items:center;flex-wrap:wrap}
+.method-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:3px}
+@media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.country-grid{grid-template-columns:repeat(3,1fr)}.bi-grid{grid-template-columns:repeat(2,1fr)}.insights-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo">⚡ Torre de Control</div>
+    <div style="font-size:11px;color:var(--muted)" id="breadcrumb"><span style="color:var(--accent);cursor:pointer" onclick="goPage('regional')">Regional</span></div>
+  </div>
+  <div class="header-right">
+    <div class="method-legend">
+      <span><span class="method-dot" style="background:#888"></span>Pro-rata</span>
+      <span><span class="method-dot" style="background:#3fb950"></span>Estacional</span>
+      <span><span class="method-dot" style="background:#bc8cff"></span>Momentum</span>
+      <span><span class="method-dot" style="background:#f0b429"></span>Blend (promedio)</span>
+    </div>
+    <div class="badge-pill" id="today-badge">—</div>
+    <div class="badge-pill pill-blue" id="period-badge">—</div>
+    <button class="btn btn-green btn-sm" onclick="openImport()">📥 Importar Excel</button>
+    <button class="btn btn-accent btn-sm" onclick="openModal()">✏ Datos</button>
+  </div>
+</div>
+
+<!-- ══ PAGE REGIONAL ══════════════════════════════════════════════════════ -->
+<div class="page active" id="page-regional">
+
+  <div class="kpi-grid">
+    <div class="kpi-card corp" onclick="showBU('corp')">
+      <div class="kpi-sem" id="sem-corp">⚪</div>
+      <div class="kpi-lbl">Venta Corporativa</div>
+      <div class="kpi-val" id="kpi-corp-val">$—</div>
+      <div style="font-size:10px;color:var(--muted)" id="kpi-corp-uni">— unidades</div>
+      <div class="kpi-sub"><span id="kpi-corp-cum">—%</span><span id="kpi-corp-gap">Gap: —</span></div>
+      <div class="kpi-hint">▸ Ver detalle por país</div>
+    </div>
+    <div class="kpi-card camas" onclick="showBU('camas')">
+      <div class="kpi-sem" id="sem-camas">⚪</div>
+      <div class="kpi-lbl">Camas</div>
+      <div class="kpi-val" id="kpi-camas-val">$—</div>
+      <div style="font-size:10px;color:var(--muted)" id="kpi-camas-uni">— unidades</div>
+      <div class="kpi-sub"><span id="kpi-camas-cum">—%</span><span id="kpi-camas-gap">Gap: —</span></div>
+      <div class="kpi-hint">▸ Ver detalle por país</div>
+    </div>
+    <div class="kpi-card retail" onclick="showBU('retail')">
+      <div class="kpi-sem" id="sem-retail">⚪</div>
+      <div class="kpi-lbl">Retail</div>
+      <div class="kpi-val" id="kpi-retail-val">$—</div>
+      <div style="font-size:10px;color:var(--muted)" id="kpi-retail-uni">— unidades</div>
+      <div class="kpi-sub"><span id="kpi-retail-cum">—%</span><span id="kpi-retail-gap">Gap: —</span></div>
+      <div class="kpi-hint">▸ Ver detalle por país</div>
+    </div>
+    <div class="kpi-card complementos" onclick="showBU('complementos')">
+      <div class="kpi-sem" id="sem-comp">⚪</div>
+      <div class="kpi-lbl">Complementos Descanso</div>
+      <div class="kpi-val" id="kpi-comp-val">$—</div>
+      <div style="font-size:10px;color:var(--muted)" id="kpi-comp-uni">— unidades</div>
+      <div class="kpi-sub"><span id="kpi-comp-cum">—%</span><span id="kpi-comp-gap">Gap: —</span></div>
+      <div class="kpi-hint">▸ Ver detalle por país</div>
+    </div>
+  </div>
+
+  <div class="sec-hdr">
+    <div class="sec-title">🌎 Países <span class="sec-badge" id="active-bu-label">Corporativo</span></div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" onclick="setView('valores',this)">$ Valores</button>
+      <button class="toggle-btn" onclick="setView('unidades',this)"># Unidades</button>
+    </div>
+  </div>
+  <div class="country-grid" id="country-nav"></div>
+
+  <div class="sec-hdr">
+    <div class="sec-title">📊 Tabla Regional — <span id="table-bu-label">Corporativo</span></div>
+    <div class="tab-bar">
+      <button class="tab active" onclick="setMetric('values',this)">Valores</button>
+      <button class="tab" onclick="setMetric('units',this)">Unidades</button>
+      <button class="tab" onclick="setMetric('ppu',this)">PPU</button>
+    </div>
+  </div>
+  <div class="table-wrap"><table><thead id="regional-thead"></thead><tbody id="regional-tbody"></tbody></table></div>
+
+  <div class="sec-hdr">
+    <div class="sec-title">🎯 Building Blocks <span class="sec-badge" id="bb-count-badge">0 acciones</span></div>
+    <div style="display:flex;gap:6px">
+      <button class="tab active" onclick="filterBB('all',this)">Todos</button>
+      <button class="tab" onclick="filterBB('Confirmado',this)">🟢 Confirm.</button>
+      <button class="tab" onclick="filterBB('En gestión',this)">🟡 Gestión</button>
+      <button class="btn btn-accent btn-sm" onclick="openBBModal(null)">+ Agregar</button>
+    </div>
+  </div>
+  <div class="table-wrap"><table style="min-width:900px">
+    <thead><tr>
+      <th style="text-align:left;padding-left:12px">País</th><th style="text-align:left">BU</th>
+      <th style="text-align:left">Iniciativa</th><th>Responsable</th><th>Fecha</th>
+      <th>Unidades</th><th>Valor $</th><th>Prob%</th><th>Estado</th><th>Acc.</th>
+    </tr></thead>
+    <tbody id="bb-tbody"></tbody>
+  </table></div>
+
+  <div class="sec-hdr"><div class="sec-title">🧠 Inteligencia de Negocio</div></div>
+  <div class="bi-grid" id="bi-grid"></div>
+</div>
+
+<!-- ══ PAGE COUNTRY ══════════════════════════════════════════════════════ -->
+<div class="page" id="page-country">
+  <div class="drill-path">
+    <span class="crumb" onclick="goPage('regional')">Regional</span>
+    <span style="color:var(--border)">/</span>
+    <span class="crumb" id="dp-bu" onclick="goPage('regional')">—</span>
+    <span style="color:var(--border)">/</span>
+    <span class="current" id="dp-country">—</span>
+  </div>
+  <div class="kpi-grid" id="country-kpi-grid"></div>
+  <div class="sec-hdr">
+    <div class="sec-title">📋 Canales — <span id="country-table-title">—</span></div>
+    <div class="tab-bar">
+      <button class="tab active" onclick="setChannelMetric('values',this)">Valores</button>
+      <button class="tab" onclick="setChannelMetric('units',this)">Unidades</button>
+      <button class="tab" onclick="setChannelMetric('ppu',this)">PPU</button>
+    </div>
+  </div>
+  <div class="table-wrap"><table><thead id="channel-thead"></thead><tbody id="channel-tbody"></tbody></table></div>
+  <div class="sec-hdr" style="margin-top:14px"><div class="sec-title">💡 Insights Automáticos</div></div>
+  <div class="insights-grid" id="country-insights"></div>
+  <div class="chart-wrap">
+    <div class="chart-title">📈 Control Estadístico — Ventas Mensuales (±10%)</div>
+    <div class="chart-container"><canvas id="control-chart"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ IMPORT MODAL ═══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><div class="modal-title">📥 Importar desde Excel</div><button class="modal-close" onclick="closeImport()">✕</button></div>
+    <div class="modal-body">
+      <div class="info-box"><strong>Pasos:</strong> Excel → hoja <strong>🔄 EXPORTAR</strong> → seleccionar desde A2 hasta última fila → Copiar → pegar aquí → Cargar.</div>
+      <div class="form-group">
+        <label>Pegar datos (incluir fila de encabezados)</label>
+        <textarea id="csv-paste" rows="10" style="font-family:monospace;font-size:11px;resize:vertical" placeholder="Pegar aquí el contenido de la hoja EXPORTAR..."></textarea>
+      </div>
+      <div id="import-preview" style="margin-top:8px;font-size:11px;color:var(--muted)"></div>
+      <div class="form-actions">
+        <button class="btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="closeImport()">Cancelar</button>
+        <button class="btn btn-accent" onclick="parseAndLoad()">Cargar Datos →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DATA MODAL ════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="data-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">✏ Actualizar Datos del Período</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-tabs" id="modal-country-tabs"></div>
+    <div class="modal-body">
+      <div class="form-section">📅 Período</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Mes</label><input type="text" id="f-mes" placeholder="Junio 2026"></div>
+        <div class="form-group"><label>Días Hábiles Transcurridos</label><input type="number" id="f-dias-habil" placeholder="12"></div>
+        <div class="form-group"><label>Días Hábiles Totales</label><input type="number" id="f-dias-total" placeholder="22"></div>
+      </div>
+      <div id="modal-country-forms"></div>
+      <div class="form-actions">
+        <button class="btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-accent" onclick="saveData()">Guardar y Actualizar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BB MODAL ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="bb-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><div class="modal-title" id="bb-modal-title">➕ Nuevo Building Block</div><button class="modal-close" onclick="closeBBModal()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="bb-edit-id">
+      <div class="form-grid">
+        <div class="form-group"><label>País</label>
+          <select id="bb-pais"><option value="">— Seleccionar —</option>
+            <option>Guatemala</option><option>Honduras</option><option>El Salvador</option>
+            <option>Nicaragua</option><option>Costa Rica</option><option>Panamá</option><option>Regional</option>
+          </select></div>
+        <div class="form-group"><label>Unidad de Negocio</label>
+          <select id="bb-bu"><option value="">— Seleccionar —</option>
+            <option>Camas</option><option>Retail</option><option>Complementos Descanso</option><option>Corporativo</option>
+          </select></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="bb-estado"><option>Confirmado</option><option>En gestión</option><option>En riesgo</option><option>Cancelado</option></select></div>
+      </div>
+      <div class="form-group" style="margin-top:9px"><label>Iniciativa / Acción</label><input type="text" id="bb-accion" placeholder="Ej: Campaña Día del Padre"></div>
+      <div class="form-grid" style="margin-top:9px">
+        <div class="form-group"><label>Responsable</label><input type="text" id="bb-resp"></div>
+        <div class="form-group"><label>Fecha Compromiso</label><input type="date" id="bb-fecha"></div>
+        <div class="form-group"><label>Canal</label><input type="text" id="bb-canal" placeholder="Tiendas, Online..."></div>
+      </div>
+      <div class="form-grid" style="margin-top:9px">
+        <div class="form-group"><label>Unidades Comprometidas</label><input type="number" id="bb-u" placeholder="0"></div>
+        <div class="form-group"><label>Valor $ Comprometido</label><input type="number" id="bb-v" placeholder="0"></div>
+        <div class="form-group"><label>Probabilidad % (<span id="bb-prob-show">75</span>%)</label>
+          <input type="range" id="bb-prob-range" min="0" max="100" value="75" oninput="document.getElementById('bb-prob-show').textContent=this.value" style="margin-top:8px;width:100%">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:9px"><label>Notas</label><textarea id="bb-notas" rows="2"></textarea></div>
+      <div class="form-actions">
+        <button class="btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="closeBBModal()">Cancelar</button>
+        <button class="btn btn-accent" onclick="saveBB()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// SEASONAL DATA
+// ══════════════════════════════════════════════════════════════════════
+const SEASONAL_DATA = {"gt":{"1":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.121511,"pct_v":0.122605},{"dom":3,"pct_u":0.079517,"pct_v":0.077395},{"dom":4,"pct_u":0.0,"pct_v":0.0},{"dom":5,"pct_u":0.03449,"pct_v":0.043488},{"dom":6,"pct_u":0.029681,"pct_v":0.029508},{"dom":7,"pct_u":0.036315,"pct_v":0.031379},{"dom":8,"pct_u":0.041745,"pct_v":0.044179},{"dom":9,"pct_u":0.035541,"pct_v":0.031538},{"dom":10,"pct_u":0.023258,"pct_v":0.019908},{"dom":11,"pct_u":0.0,"pct_v":0.0},{"dom":12,"pct_u":0.03449,"pct_v":0.043488},{"dom":13,"pct_u":0.029681,"pct_v":0.029508},{"dom":14,"pct_u":0.036315,"pct_v":0.031379},{"dom":15,"pct_u":0.041745,"pct_v":0.044179},{"dom":16,"pct_u":0.035541,"pct_v":0.031538},{"dom":17,"pct_u":0.023258,"pct_v":0.019908},{"dom":18,"pct_u":0.0,"pct_v":0.0},{"dom":19,"pct_u":0.03449,"pct_v":0.043488},{"dom":20,"pct_u":0.029681,"pct_v":0.029508},{"dom":21,"pct_u":0.036315,"pct_v":0.031379},{"dom":22,"pct_u":0.041745,"pct_v":0.044179},{"dom":23,"pct_u":0.035541,"pct_v":0.031538},{"dom":24,"pct_u":0.023258,"pct_v":0.019908},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.033608,"pct_v":0.043488},{"dom":27,"pct_u":0.028922,"pct_v":0.029508},{"dom":28,"pct_u":0.035386,"pct_v":0.031379},{"dom":29,"pct_u":0.040677,"pct_v":0.044179},{"dom":30,"pct_u":0.034632,"pct_v":0.031538},{"dom":31,"pct_u":0.022663,"pct_v":0.019908}],"2":[{"dom":1,"pct_u":0.006353,"pct_v":0.0},{"dom":2,"pct_u":0.037809,"pct_v":0.051453},{"dom":3,"pct_u":0.050951,"pct_v":0.072523},{"dom":4,"pct_u":0.045917,"pct_v":0.06047},{"dom":5,"pct_u":0.051948,"pct_v":0.042981},{"dom":6,"pct_u":0.033912,"pct_v":0.0},{"dom":7,"pct_u":0.021138,"pct_v":0.022572},{"dom":8,"pct_u":0.006736,"pct_v":0.0},{"dom":9,"pct_u":0.037809,"pct_v":0.051453},{"dom":10,"pct_u":0.050951,"pct_v":0.072523},{"dom":11,"pct_u":0.045917,"pct_v":0.06047},{"dom":12,"pct_u":0.051948,"pct_v":0.042981},{"dom":13,"pct_u":0.033912,"pct_v":0.0},{"dom":14,"pct_u":0.021138,"pct_v":0.022572},{"dom":15,"pct_u":0.006736,"pct_v":0.0},{"dom":16,"pct_u":0.037809,"pct_v":0.051453},{"dom":17,"pct_u":0.050951,"pct_v":0.072523},{"dom":18,"pct_u":0.045917,"pct_v":0.06047},{"dom":19,"pct_u":0.051948,"pct_v":0.042981},{"dom":20,"pct_u":0.033912,"pct_v":0.0},{"dom":21,"pct_u":0.021138,"pct_v":0.022572},{"dom":22,"pct_u":0.006736,"pct_v":0.0},{"dom":23,"pct_u":0.038863,"pct_v":0.051453},{"dom":24,"pct_u":0.052371,"pct_v":0.072523},{"dom":25,"pct_u":0.047197,"pct_v":0.06047},{"dom":26,"pct_u":0.053396,"pct_v":0.042981},{"dom":27,"pct_u":0.034857,"pct_v":0.0},{"dom":28,"pct_u":0.021728,"pct_v":0.022572}],"3":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.047441,"pct_v":0.0},{"dom":3,"pct_u":0.032574,"pct_v":0.042878},{"dom":4,"pct_u":0.033813,"pct_v":0.04292},{"dom":5,"pct_u":0.041155,"pct_v":0.052084},{"dom":6,"pct_u":0.035034,"pct_v":0.04871},{"dom":7,"pct_u":0.023374,"pct_v":0.034264},{"dom":8,"pct_u":0.0,"pct_v":0.0},{"dom":9,"pct_u":0.047441,"pct_v":0.0},{"dom":10,"pct_u":0.032574,"pct_v":0.042878},{"dom":11,"pct_u":0.033813,"pct_v":0.04292},{"dom":12,"pct_u":0.041155,"pct_v":0.052084},{"dom":13,"pct_u":0.035034,"pct_v":0.04871},{"dom":14,"pct_u":0.023374,"pct_v":0.034264},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.047441,"pct_v":0.0},{"dom":17,"pct_u":0.032574,"pct_v":0.042878},{"dom":18,"pct_u":0.033813,"pct_v":0.04292},{"dom":19,"pct_u":0.041155,"pct_v":0.052084},{"dom":20,"pct_u":0.035034,"pct_v":0.04871},{"dom":21,"pct_u":0.023374,"pct_v":0.034264},{"dom":22,"pct_u":0.0,"pct_v":0.0},{"dom":23,"pct_u":0.047441,"pct_v":0.0},{"dom":24,"pct_u":0.032574,"pct_v":0.042878},{"dom":25,"pct_u":0.033813,"pct_v":0.04292},{"dom":26,"pct_u":0.041155,"pct_v":0.052084},{"dom":27,"pct_u":0.035034,"pct_v":0.04871},{"dom":28,"pct_u":0.023374,"pct_v":0.034264},{"dom":29,"pct_u":0.0,"pct_v":0.0},{"dom":30,"pct_u":0.086824,"pct_v":0.0},{"dom":31,"pct_u":0.059615,"pct_v":0.116577}],"4":[{"dom":1,"pct_u":0.076367,"pct_v":0.107045},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.0,"pct_v":0.0},{"dom":5,"pct_u":0.0,"pct_v":0.0},{"dom":6,"pct_u":0.047429,"pct_v":0.042856},{"dom":7,"pct_u":0.033257,"pct_v":0.028083},{"dom":8,"pct_u":0.039576,"pct_v":0.029075},{"dom":9,"pct_u":0.045359,"pct_v":0.050307},{"dom":10,"pct_u":0.0452,"pct_v":0.05139},{"dom":11,"pct_u":0.026464,"pct_v":0.025004},{"dom":12,"pct_u":0.006115,"pct_v":0.0},{"dom":13,"pct_u":0.047429,"pct_v":0.042856},{"dom":14,"pct_u":0.033257,"pct_v":0.028083},{"dom":15,"pct_u":0.039576,"pct_v":0.029075},{"dom":16,"pct_u":0.045359,"pct_v":0.050307},{"dom":17,"pct_u":0.0452,"pct_v":0.05139},{"dom":18,"pct_u":0.026464,"pct_v":0.025004},{"dom":19,"pct_u":0.006115,"pct_v":0.0},{"dom":20,"pct_u":0.047429,"pct_v":0.042856},{"dom":21,"pct_u":0.033257,"pct_v":0.028083},{"dom":22,"pct_u":0.039576,"pct_v":0.029075},{"dom":23,"pct_u":0.045359,"pct_v":0.050307},{"dom":24,"pct_u":0.0452,"pct_v":0.05139},{"dom":25,"pct_u":0.026464,"pct_v":0.025004},{"dom":26,"pct_u":0.006115,"pct_v":0.0},{"dom":27,"pct_u":0.055393,"pct_v":0.060672},{"dom":28,"pct_u":0.038841,"pct_v":0.039757},{"dom":29,"pct_u":0.046221,"pct_v":0.041162},{"dom":30,"pct_u":0.052976,"pct_v":0.07122}],"5":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.037456,"pct_v":0.0},{"dom":3,"pct_u":0.011364,"pct_v":0.0151},{"dom":4,"pct_u":0.032566,"pct_v":0.073071},{"dom":5,"pct_u":0.039867,"pct_v":0.078579},{"dom":6,"pct_u":0.041953,"pct_v":0.072028},{"dom":7,"pct_u":0.043697,"pct_v":0.020903},{"dom":8,"pct_u":0.036653,"pct_v":0.0},{"dom":9,"pct_u":0.033035,"pct_v":0.0},{"dom":10,"pct_u":0.010023,"pct_v":0.001644},{"dom":11,"pct_u":0.032566,"pct_v":0.073071},{"dom":12,"pct_u":0.039867,"pct_v":0.078579},{"dom":13,"pct_u":0.041953,"pct_v":0.072028},{"dom":14,"pct_u":0.043697,"pct_v":0.020903},{"dom":15,"pct_u":0.036653,"pct_v":0.0},{"dom":16,"pct_u":0.033035,"pct_v":0.0},{"dom":17,"pct_u":0.010023,"pct_v":0.001644},{"dom":18,"pct_u":0.032566,"pct_v":0.073071},{"dom":19,"pct_u":0.039867,"pct_v":0.078579},{"dom":20,"pct_u":0.041953,"pct_v":0.072028},{"dom":21,"pct_u":0.043697,"pct_v":0.020903},{"dom":22,"pct_u":0.036653,"pct_v":0.0},{"dom":23,"pct_u":0.033035,"pct_v":0.0},{"dom":24,"pct_u":0.010023,"pct_v":0.001644},{"dom":25,"pct_u":0.032566,"pct_v":0.073071},{"dom":26,"pct_u":0.039867,"pct_v":0.078579},{"dom":27,"pct_u":0.041953,"pct_v":0.072028},{"dom":28,"pct_u":0.043697,"pct_v":0.020903},{"dom":29,"pct_u":0.036653,"pct_v":0.0},{"dom":30,"pct_u":0.033035,"pct_v":0.0},{"dom":31,"pct_u":0.010023,"pct_v":0.001644}],"6":[{"dom":1,"pct_u":0.034231,"pct_v":0.008393},{"dom":2,"pct_u":0.042194,"pct_v":0.048787},{"dom":3,"pct_u":0.04593,"pct_v":0.051754},{"dom":4,"pct_u":0.054825,"pct_v":0.05927},{"dom":5,"pct_u":0.038455,"pct_v":0.045257},{"dom":6,"pct_u":0.023879,"pct_v":0.03372},{"dom":7,"pct_u":0.000779,"pct_v":0.0},{"dom":8,"pct_u":0.034231,"pct_v":0.008393},{"dom":9,"pct_u":0.042194,"pct_v":0.048787},{"dom":10,"pct_u":0.04593,"pct_v":0.051754},{"dom":11,"pct_u":0.054825,"pct_v":0.05927},{"dom":12,"pct_u":0.038455,"pct_v":0.045257},{"dom":13,"pct_u":0.023879,"pct_v":0.03372},{"dom":14,"pct_u":0.000779,"pct_v":0.0},{"dom":15,"pct_u":0.034231,"pct_v":0.008393},{"dom":16,"pct_u":0.042194,"pct_v":0.048787},{"dom":17,"pct_u":0.04593,"pct_v":0.051754},{"dom":18,"pct_u":0.054825,"pct_v":0.05927},{"dom":19,"pct_u":0.038455,"pct_v":0.045257},{"dom":20,"pct_u":0.023879,"pct_v":0.03372},{"dom":21,"pct_u":0.000779,"pct_v":0.0},{"dom":22,"pct_u":0.034231,"pct_v":0.008393},{"dom":23,"pct_u":0.042194,"pct_v":0.048787},{"dom":24,"pct_u":0.04593,"pct_v":0.051754},{"dom":25,"pct_u":0.054825,"pct_v":0.05927},{"dom":26,"pct_u":0.038455,"pct_v":0.045257},{"dom":27,"pct_u":0.023879,"pct_v":0.03372},{"dom":28,"pct_u":0.000779,"pct_v":0.0},{"dom":29,"pct_u":0.038831,"pct_v":0.011282},{"dom":30,"pct_u":0.0,"pct_v":0.0}],"7":[{"dom":1,"pct_u":0.046598,"pct_v":0.060133},{"dom":2,"pct_u":0.051129,"pct_v":0.022163},{"dom":3,"pct_u":0.0433,"pct_v":0.059311},{"dom":4,"pct_u":0.029786,"pct_v":0.040006},{"dom":5,"pct_u":0.006609,"pct_v":0.011017},{"dom":6,"pct_u":0.027591,"pct_v":0.031857},{"dom":7,"pct_u":0.035121,"pct_v":0.038752},{"dom":8,"pct_u":0.039109,"pct_v":0.040967},{"dom":9,"pct_u":0.042912,"pct_v":0.015099},{"dom":10,"pct_u":0.036341,"pct_v":0.040407},{"dom":11,"pct_u":0.024999,"pct_v":0.027255},{"dom":12,"pct_u":0.005547,"pct_v":0.007506},{"dom":13,"pct_u":0.027591,"pct_v":0.031857},{"dom":14,"pct_u":0.035121,"pct_v":0.038752},{"dom":15,"pct_u":0.039109,"pct_v":0.040967},{"dom":16,"pct_u":0.042912,"pct_v":0.015099},{"dom":17,"pct_u":0.036341,"pct_v":0.040407},{"dom":18,"pct_u":0.024999,"pct_v":0.027255},{"dom":19,"pct_u":0.005547,"pct_v":0.007506},{"dom":20,"pct_u":0.027591,"pct_v":0.031857},{"dom":21,"pct_u":0.035121,"pct_v":0.038752},{"dom":22,"pct_u":0.039109,"pct_v":0.040967},{"dom":23,"pct_u":0.042912,"pct_v":0.015099},{"dom":24,"pct_u":0.036341,"pct_v":0.040407},{"dom":25,"pct_u":0.024999,"pct_v":0.027255},{"dom":26,"pct_u":0.005547,"pct_v":0.007506},{"dom":27,"pct_u":0.028604,"pct_v":0.038485},{"dom":28,"pct_u":0.036411,"pct_v":0.046814},{"dom":29,"pct_u":0.040545,"pct_v":0.049491},{"dom":30,"pct_u":0.044488,"pct_v":0.01824},{"dom":31,"pct_u":0.037675,"pct_v":0.048814}],"8":[{"dom":1,"pct_u":0.026417,"pct_v":0.0},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.037826,"pct_v":0.051431},{"dom":4,"pct_u":0.0446,"pct_v":0.054933},{"dom":5,"pct_u":0.049439,"pct_v":0.056737},{"dom":6,"pct_u":0.042444,"pct_v":0.030538},{"dom":7,"pct_u":0.034322,"pct_v":0.037072},{"dom":8,"pct_u":0.025325,"pct_v":0.0},{"dom":9,"pct_u":0.0,"pct_v":0.0},{"dom":10,"pct_u":0.042417,"pct_v":0.051431},{"dom":11,"pct_u":0.050014,"pct_v":0.054933},{"dom":12,"pct_u":0.055441,"pct_v":0.056737},{"dom":13,"pct_u":0.047596,"pct_v":0.030538},{"dom":14,"pct_u":0.038488,"pct_v":0.037072},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.0,"pct_v":0.0},{"dom":17,"pct_u":0.037826,"pct_v":0.051431},{"dom":18,"pct_u":0.0446,"pct_v":0.054933},{"dom":19,"pct_u":0.049439,"pct_v":0.056737},{"dom":20,"pct_u":0.042444,"pct_v":0.030538},{"dom":21,"pct_u":0.034322,"pct_v":0.037072},{"dom":22,"pct_u":0.025325,"pct_v":0.0},{"dom":23,"pct_u":0.0,"pct_v":0.0},{"dom":24,"pct_u":0.037826,"pct_v":0.051431},{"dom":25,"pct_u":0.0446,"pct_v":0.054933},{"dom":26,"pct_u":0.049439,"pct_v":0.056737},{"dom":27,"pct_u":0.042444,"pct_v":0.030538},{"dom":28,"pct_u":0.034322,"pct_v":0.037072},{"dom":29,"pct_u":0.025325,"pct_v":0.0},{"dom":30,"pct_u":0.0,"pct_v":0.0},{"dom":31,"pct_u":0.037757,"pct_v":0.077155}],"9":[{"dom":1,"pct_u":0.038528,"pct_v":0.0},{"dom":2,"pct_u":0.04468,"pct_v":0.048827},{"dom":3,"pct_u":0.045248,"pct_v":0.047274},{"dom":4,"pct_u":0.040385,"pct_v":0.042433},{"dom":5,"pct_u":0.024481,"pct_v":0.025619},{"dom":6,"pct_u":0.0,"pct_v":0.0},{"dom":7,"pct_u":0.034859,"pct_v":0.016862},{"dom":8,"pct_u":0.038996,"pct_v":0.0},{"dom":9,"pct_u":0.045222,"pct_v":0.068345},{"dom":10,"pct_u":0.045797,"pct_v":0.066171},{"dom":11,"pct_u":0.040874,"pct_v":0.059395},{"dom":12,"pct_u":0.024778,"pct_v":0.03586},{"dom":13,"pct_u":0.0,"pct_v":0.0},{"dom":14,"pct_u":0.041956,"pct_v":0.016862},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.054429,"pct_v":0.068345},{"dom":17,"pct_u":0.055121,"pct_v":0.066171},{"dom":18,"pct_u":0.049196,"pct_v":0.059395},{"dom":19,"pct_u":0.029823,"pct_v":0.03586},{"dom":20,"pct_u":0.0,"pct_v":0.0},{"dom":21,"pct_u":0.034859,"pct_v":0.016862},{"dom":22,"pct_u":0.038996,"pct_v":0.0},{"dom":23,"pct_u":0.045222,"pct_v":0.068345},{"dom":24,"pct_u":0.045797,"pct_v":0.066171},{"dom":25,"pct_u":0.040874,"pct_v":0.059395},{"dom":26,"pct_u":0.024778,"pct_v":0.03586},{"dom":27,"pct_u":0.0,"pct_v":0.0},{"dom":28,"pct_u":0.033696,"pct_v":0.018987},{"dom":29,"pct_u":0.037694,"pct_v":0.0},{"dom":30,"pct_u":0.043712,"pct_v":0.07696}],"10":[{"dom":1,"pct_u":0.042313,"pct_v":0.03759},{"dom":2,"pct_u":0.034444,"pct_v":0.012493},{"dom":3,"pct_u":0.034436,"pct_v":0.082309},{"dom":4,"pct_u":5.6e-05,"pct_v":0.000112},{"dom":5,"pct_u":0.030132,"pct_v":0.042272},{"dom":6,"pct_u":0.039991,"pct_v":0.050719},{"dom":7,"pct_u":0.038836,"pct_v":0.057405},{"dom":8,"pct_u":0.043066,"pct_v":0.018859},{"dom":9,"pct_u":0.035057,"pct_v":0.006268},{"dom":10,"pct_u":0.035049,"pct_v":0.041295},{"dom":11,"pct_u":5.7e-05,"pct_v":5.6e-05},{"dom":12,"pct_u":0.030132,"pct_v":0.042272},{"dom":13,"pct_u":0.039991,"pct_v":0.050719},{"dom":14,"pct_u":0.038836,"pct_v":0.057405},{"dom":15,"pct_u":0.043066,"pct_v":0.018859},{"dom":16,"pct_u":0.035057,"pct_v":0.006268},{"dom":17,"pct_u":0.035049,"pct_v":0.041295},{"dom":18,"pct_u":5.7e-05,"pct_v":5.6e-05},{"dom":19,"pct_u":0.036746,"pct_v":0.055176},{"dom":20,"pct_u":0.0,"pct_v":0.0},{"dom":21,"pct_u":0.04736,"pct_v":0.074927},{"dom":22,"pct_u":0.052519,"pct_v":0.024616},{"dom":23,"pct_u":0.042751,"pct_v":0.008181},{"dom":24,"pct_u":0.042742,"pct_v":0.0539},{"dom":25,"pct_u":7e-05,"pct_v":7.4e-05},{"dom":26,"pct_u":0.03014,"pct_v":0.042283},{"dom":27,"pct_u":0.040002,"pct_v":0.050732},{"dom":28,"pct_u":0.038846,"pct_v":0.05742},{"dom":29,"pct_u":0.043077,"pct_v":0.018864},{"dom":30,"pct_u":0.035066,"pct_v":0.00627},{"dom":31,"pct_u":0.035058,"pct_v":0.041306}],"11":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.036298,"pct_v":0.046748},{"dom":3,"pct_u":0.041502,"pct_v":0.047615},{"dom":4,"pct_u":0.040188,"pct_v":0.054569},{"dom":5,"pct_u":0.047616,"pct_v":0.050889},{"dom":6,"pct_u":0.03492,"pct_v":0.035358},{"dom":7,"pct_u":0.032015,"pct_v":0.0},{"dom":8,"pct_u":0.008143,"pct_v":0.0},{"dom":9,"pct_u":0.036298,"pct_v":0.046748},{"dom":10,"pct_u":0.041502,"pct_v":0.047615},{"dom":11,"pct_u":0.040188,"pct_v":0.054569},{"dom":12,"pct_u":0.047616,"pct_v":0.050889},{"dom":13,"pct_u":0.03492,"pct_v":0.035358},{"dom":14,"pct_u":0.032015,"pct_v":0.0},{"dom":15,"pct_u":0.008143,"pct_v":0.0},{"dom":16,"pct_u":0.036298,"pct_v":0.046748},{"dom":17,"pct_u":0.041502,"pct_v":0.047615},{"dom":18,"pct_u":0.040188,"pct_v":0.054569},{"dom":19,"pct_u":0.047616,"pct_v":0.050889},{"dom":20,"pct_u":0.03492,"pct_v":0.035358},{"dom":21,"pct_u":0.032015,"pct_v":0.0},{"dom":22,"pct_u":0.008143,"pct_v":0.0},{"dom":23,"pct_u":0.036298,"pct_v":0.046748},{"dom":24,"pct_u":0.041502,"pct_v":0.047615},{"dom":25,"pct_u":0.040188,"pct_v":0.054569},{"dom":26,"pct_u":0.047616,"pct_v":0.050889},{"dom":27,"pct_u":0.03492,"pct_v":0.035358},{"dom":28,"pct_u":0.032015,"pct_v":0.0},{"dom":29,"pct_u":0.008143,"pct_v":0.0},{"dom":30,"pct_u":0.03727,"pct_v":0.059287}],"12":[{"dom":1,"pct_u":0.036344,"pct_v":0.026643},{"dom":2,"pct_u":0.026488,"pct_v":0.026692},{"dom":3,"pct_u":0.031196,"pct_v":0.030891},{"dom":4,"pct_u":0.036289,"pct_v":0.032664},{"dom":5,"pct_u":0.033851,"pct_v":0.030799},{"dom":6,"pct_u":0.010264,"pct_v":0.009835},{"dom":7,"pct_u":0.042905,"pct_v":0.033087},{"dom":8,"pct_u":0.034064,"pct_v":0.030028},{"dom":9,"pct_u":0.024826,"pct_v":0.030082},{"dom":10,"pct_u":0.029239,"pct_v":0.034815},{"dom":11,"pct_u":0.034012,"pct_v":0.036813},{"dom":12,"pct_u":0.031727,"pct_v":0.034712},{"dom":13,"pct_u":0.00962,"pct_v":0.011084},{"dom":14,"pct_u":0.042905,"pct_v":0.033087},{"dom":15,"pct_u":0.034064,"pct_v":0.030028},{"dom":16,"pct_u":0.024826,"pct_v":0.030082},{"dom":17,"pct_u":0.029239,"pct_v":0.034815},{"dom":18,"pct_u":0.034012,"pct_v":0.036813},{"dom":19,"pct_u":0.031727,"pct_v":0.034712},{"dom":20,"pct_u":0.00962,"pct_v":0.011084},{"dom":21,"pct_u":0.061864,"pct_v":0.050137},{"dom":22,"pct_u":0.049115,"pct_v":0.045502},{"dom":23,"pct_u":0.035795,"pct_v":0.045584},{"dom":24,"pct_u":0.0,"pct_v":0.0},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.045746,"pct_v":0.0526},{"dom":27,"pct_u":0.013871,"pct_v":0.016796},{"dom":28,"pct_u":0.086992,"pct_v":0.074774},{"dom":29,"pct_u":0.069065,"pct_v":0.067861},{"dom":30,"pct_u":0.050335,"pct_v":0.067984},{"dom":31,"pct_u":0.0,"pct_v":0.0}]},"hn":{"1":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.127316,"pct_v":0.100888},{"dom":3,"pct_u":0.071715,"pct_v":0.098218},{"dom":4,"pct_u":0.00139,"pct_v":0.000929},{"dom":5,"pct_u":0.037287,"pct_v":0.04996},{"dom":6,"pct_u":0.031023,"pct_v":0.038559},{"dom":7,"pct_u":0.042041,"pct_v":0.038296},{"dom":8,"pct_u":0.032715,"pct_v":0.033377},{"dom":9,"pct_u":0.036434,"pct_v":0.020095},{"dom":10,"pct_u":0.020523,"pct_v":0.019563},{"dom":11,"pct_u":0.000398,"pct_v":0.000185},{"dom":12,"pct_u":0.037287,"pct_v":0.04996},{"dom":13,"pct_u":0.031023,"pct_v":0.038559},{"dom":14,"pct_u":0.042041,"pct_v":0.038296},{"dom":15,"pct_u":0.032715,"pct_v":0.033377},{"dom":16,"pct_u":0.036434,"pct_v":0.020095},{"dom":17,"pct_u":0.020523,"pct_v":0.019563},{"dom":18,"pct_u":0.000398,"pct_v":0.000185},{"dom":19,"pct_u":0.037287,"pct_v":0.04996},{"dom":20,"pct_u":0.031023,"pct_v":0.038559},{"dom":21,"pct_u":0.042041,"pct_v":0.038296},{"dom":22,"pct_u":0.032715,"pct_v":0.033377},{"dom":23,"pct_u":0.036434,"pct_v":0.020095},{"dom":24,"pct_u":0.020523,"pct_v":0.019563},{"dom":25,"pct_u":0.000398,"pct_v":0.000185},{"dom":26,"pct_u":0.036969,"pct_v":0.049962},{"dom":27,"pct_u":0.030759,"pct_v":0.038561},{"dom":28,"pct_u":0.041682,"pct_v":0.038298},{"dom":29,"pct_u":0.032437,"pct_v":0.033379},{"dom":30,"pct_u":0.036124,"pct_v":0.020096},{"dom":31,"pct_u":0.020348,"pct_v":0.019564}],"2":[{"dom":1,"pct_u":0.002622,"pct_v":0.000219},{"dom":2,"pct_u":0.045046,"pct_v":0.054416},{"dom":3,"pct_u":0.051894,"pct_v":0.06261},{"dom":4,"pct_u":0.049244,"pct_v":0.046869},{"dom":5,"pct_u":0.044922,"pct_v":0.038896},{"dom":6,"pct_u":0.042671,"pct_v":0.031114},{"dom":7,"pct_u":0.013516,"pct_v":0.015886},{"dom":8,"pct_u":0.002736,"pct_v":0.000205},{"dom":9,"pct_u":0.045046,"pct_v":0.054416},{"dom":10,"pct_u":0.051894,"pct_v":0.06261},{"dom":11,"pct_u":0.049244,"pct_v":0.046869},{"dom":12,"pct_u":0.044922,"pct_v":0.038896},{"dom":13,"pct_u":0.042671,"pct_v":0.031114},{"dom":14,"pct_u":0.013516,"pct_v":0.015886},{"dom":15,"pct_u":0.002736,"pct_v":0.000205},{"dom":16,"pct_u":0.045046,"pct_v":0.054416},{"dom":17,"pct_u":0.051894,"pct_v":0.06261},{"dom":18,"pct_u":0.049244,"pct_v":0.046869},{"dom":19,"pct_u":0.044922,"pct_v":0.038896},{"dom":20,"pct_u":0.042671,"pct_v":0.031114},{"dom":21,"pct_u":0.013516,"pct_v":0.015886},{"dom":22,"pct_u":0.002736,"pct_v":0.000205},{"dom":23,"pct_u":0.045046,"pct_v":0.054416},{"dom":24,"pct_u":0.051894,"pct_v":0.06261},{"dom":25,"pct_u":0.049244,"pct_v":0.046869},{"dom":26,"pct_u":0.044922,"pct_v":0.038896},{"dom":27,"pct_u":0.042671,"pct_v":0.031114},{"dom":28,"pct_u":0.013516,"pct_v":0.015886}],"3":[{"dom":1,"pct_u":0.002382,"pct_v":0.000179},{"dom":2,"pct_u":0.041519,"pct_v":0.067719},{"dom":3,"pct_u":0.04418,"pct_v":0.011678},{"dom":4,"pct_u":0.036172,"pct_v":0.037328},{"dom":5,"pct_u":0.03724,"pct_v":0.03956},{"dom":6,"pct_u":0.032048,"pct_v":0.033808},{"dom":7,"pct_u":0.024166,"pct_v":0.027973},{"dom":8,"pct_u":0.002301,"pct_v":0.000187},{"dom":9,"pct_u":0.041519,"pct_v":0.067719},{"dom":10,"pct_u":0.04418,"pct_v":0.011678},{"dom":11,"pct_u":0.036172,"pct_v":0.037328},{"dom":12,"pct_u":0.03724,"pct_v":0.03956},{"dom":13,"pct_u":0.032048,"pct_v":0.033808},{"dom":14,"pct_u":0.024166,"pct_v":0.027973},{"dom":15,"pct_u":0.002301,"pct_v":0.000187},{"dom":16,"pct_u":0.041519,"pct_v":0.067719},{"dom":17,"pct_u":0.04418,"pct_v":0.011678},{"dom":18,"pct_u":0.036172,"pct_v":0.037328},{"dom":19,"pct_u":0.03724,"pct_v":0.03956},{"dom":20,"pct_u":0.032048,"pct_v":0.033808},{"dom":21,"pct_u":0.024166,"pct_v":0.027973},{"dom":22,"pct_u":0.002301,"pct_v":0.000187},{"dom":23,"pct_u":0.041519,"pct_v":0.067719},{"dom":24,"pct_u":0.04418,"pct_v":0.011678},{"dom":25,"pct_u":0.036172,"pct_v":0.037328},{"dom":26,"pct_u":0.03724,"pct_v":0.03956},{"dom":27,"pct_u":0.032048,"pct_v":0.033808},{"dom":28,"pct_u":0.024166,"pct_v":0.027973},{"dom":29,"pct_u":0.002301,"pct_v":0.000187},{"dom":30,"pct_u":0.061583,"pct_v":0.108154},{"dom":31,"pct_u":0.065531,"pct_v":0.018651}],"4":[{"dom":1,"pct_u":0.05472,"pct_v":0.054103},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.039401,"pct_v":0.043854},{"dom":5,"pct_u":0.003688,"pct_v":0.000321},{"dom":6,"pct_u":0.045241,"pct_v":0.050066},{"dom":7,"pct_u":0.045919,"pct_v":0.040941},{"dom":8,"pct_u":0.035879,"pct_v":0.031133},{"dom":9,"pct_u":0.041548,"pct_v":0.045244},{"dom":10,"pct_u":0.038327,"pct_v":0.041747},{"dom":11,"pct_u":0.025835,"pct_v":0.025236},{"dom":12,"pct_u":0.002418,"pct_v":0.000185},{"dom":13,"pct_u":0.056218,"pct_v":0.060653},{"dom":14,"pct_u":0.0,"pct_v":0.0},{"dom":15,"pct_u":0.044585,"pct_v":0.037716},{"dom":16,"pct_u":0.05163,"pct_v":0.054811},{"dom":17,"pct_u":0.047627,"pct_v":0.050575},{"dom":18,"pct_u":0.032104,"pct_v":0.030572},{"dom":19,"pct_u":0.003005,"pct_v":0.000224},{"dom":20,"pct_u":0.045241,"pct_v":0.050066},{"dom":21,"pct_u":0.045919,"pct_v":0.040941},{"dom":22,"pct_u":0.035879,"pct_v":0.031133},{"dom":23,"pct_u":0.041548,"pct_v":0.045244},{"dom":24,"pct_u":0.038327,"pct_v":0.041747},{"dom":25,"pct_u":0.025835,"pct_v":0.025236},{"dom":26,"pct_u":0.002418,"pct_v":0.000185},{"dom":27,"pct_u":0.052781,"pct_v":0.059245},{"dom":28,"pct_u":0.053572,"pct_v":0.048446},{"dom":29,"pct_u":0.041859,"pct_v":0.036841},{"dom":30,"pct_u":0.048473,"pct_v":0.053538}],"5":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.035461,"pct_v":0.032851},{"dom":3,"pct_u":0.003842,"pct_v":0.004578},{"dom":4,"pct_u":0.044292,"pct_v":0.051913},{"dom":5,"pct_u":0.042757,"pct_v":0.048814},{"dom":6,"pct_u":0.037936,"pct_v":0.042586},{"dom":7,"pct_u":0.038367,"pct_v":0.038626},{"dom":8,"pct_u":0.041278,"pct_v":0.027377},{"dom":9,"pct_u":0.03207,"pct_v":0.027494},{"dom":10,"pct_u":0.003474,"pct_v":0.003832},{"dom":11,"pct_u":0.044292,"pct_v":0.051913},{"dom":12,"pct_u":0.042757,"pct_v":0.048814},{"dom":13,"pct_u":0.037936,"pct_v":0.042586},{"dom":14,"pct_u":0.038367,"pct_v":0.038626},{"dom":15,"pct_u":0.041278,"pct_v":0.027377},{"dom":16,"pct_u":0.03207,"pct_v":0.027494},{"dom":17,"pct_u":0.003474,"pct_v":0.003832},{"dom":18,"pct_u":0.044292,"pct_v":0.051913},{"dom":19,"pct_u":0.042757,"pct_v":0.048814},{"dom":20,"pct_u":0.037936,"pct_v":0.042586},{"dom":21,"pct_u":0.038367,"pct_v":0.038626},{"dom":22,"pct_u":0.041278,"pct_v":0.027377},{"dom":23,"pct_u":0.03207,"pct_v":0.027494},{"dom":24,"pct_u":0.003474,"pct_v":0.003832},{"dom":25,"pct_u":0.044292,"pct_v":0.051913},{"dom":26,"pct_u":0.042757,"pct_v":0.048814},{"dom":27,"pct_u":0.037936,"pct_v":0.042586},{"dom":28,"pct_u":0.038367,"pct_v":0.038626},{"dom":29,"pct_u":0.041278,"pct_v":0.027377},{"dom":30,"pct_u":0.03207,"pct_v":0.027494},{"dom":31,"pct_u":0.003474,"pct_v":0.003832}],"6":[{"dom":1,"pct_u":0.041064,"pct_v":0.031382},{"dom":2,"pct_u":0.041828,"pct_v":0.046598},{"dom":3,"pct_u":0.043003,"pct_v":0.046587},{"dom":4,"pct_u":0.044442,"pct_v":0.04743},{"dom":5,"pct_u":0.038216,"pct_v":0.041426},{"dom":6,"pct_u":0.020534,"pct_v":0.015811},{"dom":7,"pct_u":0.0,"pct_v":0.0},{"dom":8,"pct_u":0.041064,"pct_v":0.031382},{"dom":9,"pct_u":0.041828,"pct_v":0.046598},{"dom":10,"pct_u":0.043003,"pct_v":0.046587},{"dom":11,"pct_u":0.044442,"pct_v":0.04743},{"dom":12,"pct_u":0.038216,"pct_v":0.041426},{"dom":13,"pct_u":0.020534,"pct_v":0.015811},{"dom":14,"pct_u":0.0,"pct_v":0.0},{"dom":15,"pct_u":0.041064,"pct_v":0.031382},{"dom":16,"pct_u":0.041828,"pct_v":0.046598},{"dom":17,"pct_u":0.043003,"pct_v":0.046587},{"dom":18,"pct_u":0.044442,"pct_v":0.04743},{"dom":19,"pct_u":0.038216,"pct_v":0.041426},{"dom":20,"pct_u":0.020534,"pct_v":0.015811},{"dom":21,"pct_u":0.0,"pct_v":0.0},{"dom":22,"pct_u":0.041064,"pct_v":0.031382},{"dom":23,"pct_u":0.041828,"pct_v":0.046598},{"dom":24,"pct_u":0.043003,"pct_v":0.046587},{"dom":25,"pct_u":0.044442,"pct_v":0.04743},{"dom":26,"pct_u":0.038216,"pct_v":0.041426},{"dom":27,"pct_u":0.020534,"pct_v":0.015811},{"dom":28,"pct_u":0.0,"pct_v":0.0},{"dom":29,"pct_u":0.041439,"pct_v":0.033427},{"dom":30,"pct_u":0.04221,"pct_v":0.049636}],"7":[{"dom":1,"pct_u":0.043272,"pct_v":0.039815},{"dom":2,"pct_u":0.040482,"pct_v":0.037313},{"dom":3,"pct_u":0.036433,"pct_v":0.042916},{"dom":4,"pct_u":0.016693,"pct_v":0.018055},{"dom":5,"pct_u":0.002416,"pct_v":0.000198},{"dom":6,"pct_u":0.043709,"pct_v":0.048665},{"dom":7,"pct_u":0.039934,"pct_v":0.046892},{"dom":8,"pct_u":0.042176,"pct_v":0.03493},{"dom":9,"pct_u":0.039457,"pct_v":0.032735},{"dom":10,"pct_u":0.035511,"pct_v":0.03765},{"dom":11,"pct_u":0.016271,"pct_v":0.01584},{"dom":12,"pct_u":0.002355,"pct_v":0.000174},{"dom":13,"pct_u":0.043709,"pct_v":0.048665},{"dom":14,"pct_u":0.039934,"pct_v":0.046892},{"dom":15,"pct_u":0.042176,"pct_v":0.03493},{"dom":16,"pct_u":0.039457,"pct_v":0.032735},{"dom":17,"pct_u":0.035511,"pct_v":0.03765},{"dom":18,"pct_u":0.016271,"pct_v":0.01584},{"dom":19,"pct_u":0.002355,"pct_v":0.000174},{"dom":20,"pct_u":0.043709,"pct_v":0.048665},{"dom":21,"pct_u":0.039934,"pct_v":0.046892},{"dom":22,"pct_u":0.042176,"pct_v":0.03493},{"dom":23,"pct_u":0.039457,"pct_v":0.032735},{"dom":24,"pct_u":0.035511,"pct_v":0.03765},{"dom":25,"pct_u":0.016271,"pct_v":0.01584},{"dom":26,"pct_u":0.002355,"pct_v":0.000174},{"dom":27,"pct_u":0.044075,"pct_v":0.05113},{"dom":28,"pct_u":0.040268,"pct_v":0.049267},{"dom":29,"pct_u":0.042529,"pct_v":0.036699},{"dom":30,"pct_u":0.039787,"pct_v":0.034393},{"dom":31,"pct_u":0.035808,"pct_v":0.039557}],"8":[{"dom":1,"pct_u":0.015574,"pct_v":0.006095},{"dom":2,"pct_u":0.002538,"pct_v":0.000197},{"dom":3,"pct_u":0.046301,"pct_v":0.050128},{"dom":4,"pct_u":0.043832,"pct_v":0.046648},{"dom":5,"pct_u":0.045062,"pct_v":0.047063},{"dom":6,"pct_u":0.043019,"pct_v":0.046887},{"dom":7,"pct_u":0.037332,"pct_v":0.036672},{"dom":8,"pct_u":0.016315,"pct_v":0.006066},{"dom":9,"pct_u":0.002659,"pct_v":0.000196},{"dom":10,"pct_u":0.046301,"pct_v":0.050128},{"dom":11,"pct_u":0.043832,"pct_v":0.046648},{"dom":12,"pct_u":0.045062,"pct_v":0.047063},{"dom":13,"pct_u":0.043019,"pct_v":0.046887},{"dom":14,"pct_u":0.037332,"pct_v":0.036672},{"dom":15,"pct_u":0.016315,"pct_v":0.006066},{"dom":16,"pct_u":0.002659,"pct_v":0.000196},{"dom":17,"pct_u":0.046301,"pct_v":0.050128},{"dom":18,"pct_u":0.043832,"pct_v":0.046648},{"dom":19,"pct_u":0.045062,"pct_v":0.047063},{"dom":20,"pct_u":0.043019,"pct_v":0.046887},{"dom":21,"pct_u":0.037332,"pct_v":0.036672},{"dom":22,"pct_u":0.016315,"pct_v":0.006066},{"dom":23,"pct_u":0.002659,"pct_v":0.000196},{"dom":24,"pct_u":0.046301,"pct_v":0.050128},{"dom":25,"pct_u":0.043832,"pct_v":0.046648},{"dom":26,"pct_u":0.045062,"pct_v":0.047063},{"dom":27,"pct_u":0.043019,"pct_v":0.046887},{"dom":28,"pct_u":0.037332,"pct_v":0.036672},{"dom":29,"pct_u":0.016315,"pct_v":0.006066},{"dom":30,"pct_u":0.002659,"pct_v":0.000196},{"dom":31,"pct_u":0.043812,"pct_v":0.059064}],"9":[{"dom":1,"pct_u":0.04066,"pct_v":0.0},{"dom":2,"pct_u":0.041731,"pct_v":0.050474},{"dom":3,"pct_u":0.040427,"pct_v":0.04603},{"dom":4,"pct_u":0.037627,"pct_v":0.040888},{"dom":5,"pct_u":0.021698,"pct_v":0.027676},{"dom":6,"pct_u":3.8e-05,"pct_v":0.0003},{"dom":7,"pct_u":0.057867,"pct_v":0.110755},{"dom":8,"pct_u":0.037086,"pct_v":0.0},{"dom":9,"pct_u":0.038063,"pct_v":0.033744},{"dom":10,"pct_u":0.036874,"pct_v":0.030773},{"dom":11,"pct_u":0.03432,"pct_v":0.027336},{"dom":12,"pct_u":0.01979,"pct_v":0.018503},{"dom":13,"pct_u":3.5e-05,"pct_v":0.000201},{"dom":14,"pct_u":0.069347,"pct_v":0.110755},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.045614,"pct_v":0.033744},{"dom":17,"pct_u":0.044189,"pct_v":0.030773},{"dom":18,"pct_u":0.041128,"pct_v":0.027336},{"dom":19,"pct_u":0.023716,"pct_v":0.018503},{"dom":20,"pct_u":4.2e-05,"pct_v":0.000201},{"dom":21,"pct_u":0.057867,"pct_v":0.110755},{"dom":22,"pct_u":0.037086,"pct_v":0.0},{"dom":23,"pct_u":0.038063,"pct_v":0.033744},{"dom":24,"pct_u":0.036874,"pct_v":0.030773},{"dom":25,"pct_u":0.03432,"pct_v":0.027336},{"dom":26,"pct_u":0.01979,"pct_v":0.018503},{"dom":27,"pct_u":3.5e-05,"pct_v":0.000201},{"dom":28,"pct_u":0.063391,"pct_v":0.130837},{"dom":29,"pct_u":0.040627,"pct_v":0.0},{"dom":30,"pct_u":0.041696,"pct_v":0.039863}],"10":[{"dom":1,"pct_u":0.03694,"pct_v":0.015871},{"dom":2,"pct_u":0.041308,"pct_v":0.038272},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.002475,"pct_v":0.000185},{"dom":5,"pct_u":0.036747,"pct_v":0.042019},{"dom":6,"pct_u":0.047934,"pct_v":0.068841},{"dom":7,"pct_u":0.035508,"pct_v":0.044836},{"dom":8,"pct_u":0.037257,"pct_v":0.015961},{"dom":9,"pct_u":0.041662,"pct_v":0.038489},{"dom":10,"pct_u":0.029298,"pct_v":0.027234},{"dom":11,"pct_u":0.002496,"pct_v":0.000186},{"dom":12,"pct_u":0.0,"pct_v":0.0},{"dom":13,"pct_u":0.057006,"pct_v":0.083633},{"dom":14,"pct_u":0.042228,"pct_v":0.05447},{"dom":15,"pct_u":0.044308,"pct_v":0.019391},{"dom":16,"pct_u":0.049548,"pct_v":0.046759},{"dom":17,"pct_u":0.034843,"pct_v":0.033086},{"dom":18,"pct_u":0.002969,"pct_v":0.000226},{"dom":19,"pct_u":0.043425,"pct_v":0.051794},{"dom":20,"pct_u":0.056645,"pct_v":0.084855},{"dom":21,"pct_u":0.0,"pct_v":0.0},{"dom":22,"pct_u":0.044027,"pct_v":0.019675},{"dom":23,"pct_u":0.049234,"pct_v":0.047443},{"dom":24,"pct_u":0.034622,"pct_v":0.03357},{"dom":25,"pct_u":0.00295,"pct_v":0.00023},{"dom":26,"pct_u":0.036452,"pct_v":0.041239},{"dom":27,"pct_u":0.047549,"pct_v":0.067563},{"dom":28,"pct_u":0.035222,"pct_v":0.044004},{"dom":29,"pct_u":0.036957,"pct_v":0.015665},{"dom":30,"pct_u":0.041327,"pct_v":0.037775},{"dom":31,"pct_u":0.029062,"pct_v":0.026729}],"11":[{"dom":1,"pct_u":0.004473,"pct_v":0.004574},{"dom":2,"pct_u":0.043499,"pct_v":0.046535},{"dom":3,"pct_u":0.041875,"pct_v":0.046924},{"dom":4,"pct_u":0.041279,"pct_v":0.042858},{"dom":5,"pct_u":0.043719,"pct_v":0.048158},{"dom":6,"pct_u":0.036709,"pct_v":0.041799},{"dom":7,"pct_u":0.026646,"pct_v":0.005604},{"dom":8,"pct_u":0.004651,"pct_v":0.004842},{"dom":9,"pct_u":0.043499,"pct_v":0.046535},{"dom":10,"pct_u":0.041875,"pct_v":0.046924},{"dom":11,"pct_u":0.041279,"pct_v":0.042858},{"dom":12,"pct_u":0.043719,"pct_v":0.048158},{"dom":13,"pct_u":0.036709,"pct_v":0.041799},{"dom":14,"pct_u":0.026646,"pct_v":0.005604},{"dom":15,"pct_u":0.004651,"pct_v":0.004842},{"dom":16,"pct_u":0.043499,"pct_v":0.046535},{"dom":17,"pct_u":0.041875,"pct_v":0.046924},{"dom":18,"pct_u":0.041279,"pct_v":0.042858},{"dom":19,"pct_u":0.043719,"pct_v":0.048158},{"dom":20,"pct_u":0.036709,"pct_v":0.041799},{"dom":21,"pct_u":0.026646,"pct_v":0.005604},{"dom":22,"pct_u":0.004651,"pct_v":0.004842},{"dom":23,"pct_u":0.043499,"pct_v":0.046535},{"dom":24,"pct_u":0.041875,"pct_v":0.046924},{"dom":25,"pct_u":0.041279,"pct_v":0.042858},{"dom":26,"pct_u":0.043719,"pct_v":0.048158},{"dom":27,"pct_u":0.036709,"pct_v":0.041799},{"dom":28,"pct_u":0.026646,"pct_v":0.005604},{"dom":29,"pct_u":0.004651,"pct_v":0.004842},{"dom":30,"pct_u":0.042015,"pct_v":0.048546}],"12":[{"dom":1,"pct_u":0.036902,"pct_v":0.02957},{"dom":2,"pct_u":0.025115,"pct_v":0.025561},{"dom":3,"pct_u":0.035992,"pct_v":0.037529},{"dom":4,"pct_u":0.036242,"pct_v":0.035248},{"dom":5,"pct_u":0.034702,"pct_v":0.03591},{"dom":6,"pct_u":0.001816,"pct_v":0.001968},{"dom":7,"pct_u":0.047043,"pct_v":0.032815},{"dom":8,"pct_u":0.034632,"pct_v":0.031345},{"dom":9,"pct_u":0.02357,"pct_v":0.027096},{"dom":10,"pct_u":0.033778,"pct_v":0.039783},{"dom":11,"pct_u":0.034013,"pct_v":0.037364},{"dom":12,"pct_u":0.032567,"pct_v":0.038066},{"dom":13,"pct_u":0.001704,"pct_v":0.002086},{"dom":14,"pct_u":0.047043,"pct_v":0.032815},{"dom":15,"pct_u":0.034632,"pct_v":0.031345},{"dom":16,"pct_u":0.02357,"pct_v":0.027096},{"dom":17,"pct_u":0.033778,"pct_v":0.039783},{"dom":18,"pct_u":0.034013,"pct_v":0.037364},{"dom":19,"pct_u":0.032567,"pct_v":0.038066},{"dom":20,"pct_u":0.001704,"pct_v":0.002086},{"dom":21,"pct_u":0.056276,"pct_v":0.039977},{"dom":22,"pct_u":0.041429,"pct_v":0.038187},{"dom":23,"pct_u":0.028197,"pct_v":0.03301},{"dom":24,"pct_u":0.040408,"pct_v":0.048466},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.038959,"pct_v":0.046374},{"dom":27,"pct_u":0.002039,"pct_v":0.002541},{"dom":28,"pct_u":0.070149,"pct_v":0.052226},{"dom":29,"pct_u":0.051642,"pct_v":0.049888},{"dom":30,"pct_u":0.035148,"pct_v":0.043124},{"dom":31,"pct_u":0.050369,"pct_v":0.063316}]},"sv":{"1":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.114912,"pct_v":0.1102},{"dom":3,"pct_u":0.073398,"pct_v":0.0898},{"dom":4,"pct_u":0.012455,"pct_v":0.0},{"dom":5,"pct_u":0.020021,"pct_v":0.033087},{"dom":6,"pct_u":0.04897,"pct_v":0.047221},{"dom":7,"pct_u":0.033159,"pct_v":0.037075},{"dom":8,"pct_u":0.036973,"pct_v":0.0352},{"dom":9,"pct_u":0.035282,"pct_v":0.026128},{"dom":10,"pct_u":0.022536,"pct_v":0.021291},{"dom":11,"pct_u":0.003824,"pct_v":0.0},{"dom":12,"pct_u":0.020021,"pct_v":0.033087},{"dom":13,"pct_u":0.04897,"pct_v":0.047221},{"dom":14,"pct_u":0.033159,"pct_v":0.037075},{"dom":15,"pct_u":0.036973,"pct_v":0.0352},{"dom":16,"pct_u":0.035282,"pct_v":0.026128},{"dom":17,"pct_u":0.022536,"pct_v":0.021291},{"dom":18,"pct_u":0.003824,"pct_v":0.0},{"dom":19,"pct_u":0.020021,"pct_v":0.033087},{"dom":20,"pct_u":0.04897,"pct_v":0.047221},{"dom":21,"pct_u":0.033159,"pct_v":0.037075},{"dom":22,"pct_u":0.036973,"pct_v":0.0352},{"dom":23,"pct_u":0.035282,"pct_v":0.026128},{"dom":24,"pct_u":0.022536,"pct_v":0.021291},{"dom":25,"pct_u":0.003824,"pct_v":0.0},{"dom":26,"pct_u":0.020021,"pct_v":0.033087},{"dom":27,"pct_u":0.04897,"pct_v":0.047221},{"dom":28,"pct_u":0.033159,"pct_v":0.037075},{"dom":29,"pct_u":0.036973,"pct_v":0.0352},{"dom":30,"pct_u":0.035282,"pct_v":0.026128},{"dom":31,"pct_u":0.022536,"pct_v":0.021291}],"2":[{"dom":1,"pct_u":0.004739,"pct_v":0.0},{"dom":2,"pct_u":0.0378,"pct_v":0.046407},{"dom":3,"pct_u":0.064251,"pct_v":0.065878},{"dom":4,"pct_u":0.046735,"pct_v":0.058633},{"dom":5,"pct_u":0.046564,"pct_v":0.037101},{"dom":6,"pct_u":0.03334,"pct_v":0.025598},{"dom":7,"pct_u":0.015303,"pct_v":0.016383},{"dom":8,"pct_u":0.004823,"pct_v":0.0},{"dom":9,"pct_u":0.0378,"pct_v":0.046407},{"dom":10,"pct_u":0.064251,"pct_v":0.065878},{"dom":11,"pct_u":0.046735,"pct_v":0.058633},{"dom":12,"pct_u":0.046564,"pct_v":0.037101},{"dom":13,"pct_u":0.03334,"pct_v":0.025598},{"dom":14,"pct_u":0.015303,"pct_v":0.016383},{"dom":15,"pct_u":0.004823,"pct_v":0.0},{"dom":16,"pct_u":0.0378,"pct_v":0.046407},{"dom":17,"pct_u":0.064251,"pct_v":0.065878},{"dom":18,"pct_u":0.046735,"pct_v":0.058633},{"dom":19,"pct_u":0.046564,"pct_v":0.037101},{"dom":20,"pct_u":0.03334,"pct_v":0.025598},{"dom":21,"pct_u":0.015303,"pct_v":0.016383},{"dom":22,"pct_u":0.004823,"pct_v":0.0},{"dom":23,"pct_u":0.038547,"pct_v":0.046407},{"dom":24,"pct_u":0.065521,"pct_v":0.065878},{"dom":25,"pct_u":0.047659,"pct_v":0.058633},{"dom":26,"pct_u":0.047485,"pct_v":0.037101},{"dom":27,"pct_u":0.033999,"pct_v":0.025598},{"dom":28,"pct_u":0.015605,"pct_v":0.016383}],"3":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.051469,"pct_v":0.056102},{"dom":3,"pct_u":0.047862,"pct_v":0.033133},{"dom":4,"pct_u":0.019363,"pct_v":0.02281},{"dom":5,"pct_u":0.03935,"pct_v":0.040658},{"dom":6,"pct_u":0.044205,"pct_v":0.046533},{"dom":7,"pct_u":0.012631,"pct_v":0.016459},{"dom":8,"pct_u":0.0,"pct_v":0.0},{"dom":9,"pct_u":0.051469,"pct_v":0.056102},{"dom":10,"pct_u":0.047862,"pct_v":0.033133},{"dom":11,"pct_u":0.019363,"pct_v":0.02281},{"dom":12,"pct_u":0.03935,"pct_v":0.040658},{"dom":13,"pct_u":0.044205,"pct_v":0.046533},{"dom":14,"pct_u":0.012631,"pct_v":0.016459},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.051469,"pct_v":0.056102},{"dom":17,"pct_u":0.047862,"pct_v":0.033133},{"dom":18,"pct_u":0.019363,"pct_v":0.02281},{"dom":19,"pct_u":0.03935,"pct_v":0.040658},{"dom":20,"pct_u":0.044205,"pct_v":0.046533},{"dom":21,"pct_u":0.012631,"pct_v":0.016459},{"dom":22,"pct_u":0.0,"pct_v":0.0},{"dom":23,"pct_u":0.051469,"pct_v":0.056102},{"dom":24,"pct_u":0.047862,"pct_v":0.033133},{"dom":25,"pct_u":0.019363,"pct_v":0.02281},{"dom":26,"pct_u":0.03935,"pct_v":0.040658},{"dom":27,"pct_u":0.044205,"pct_v":0.046533},{"dom":28,"pct_u":0.012631,"pct_v":0.016459},{"dom":29,"pct_u":0.0,"pct_v":0.0},{"dom":30,"pct_u":0.072789,"pct_v":0.086274},{"dom":31,"pct_u":0.067689,"pct_v":0.050952}],"4":[{"dom":1,"pct_u":0.052469,"pct_v":0.056706},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.022839,"pct_v":0.026734},{"dom":5,"pct_u":0.006493,"pct_v":0.0},{"dom":6,"pct_u":0.05016,"pct_v":0.057613},{"dom":7,"pct_u":0.05752,"pct_v":0.04638},{"dom":8,"pct_u":0.034921,"pct_v":0.032738},{"dom":9,"pct_u":0.040648,"pct_v":0.042659},{"dom":10,"pct_u":0.033478,"pct_v":0.034534},{"dom":11,"pct_u":0.015201,"pct_v":0.015434},{"dom":12,"pct_u":0.004321,"pct_v":0.0},{"dom":13,"pct_u":0.05016,"pct_v":0.057613},{"dom":14,"pct_u":0.05752,"pct_v":0.04638},{"dom":15,"pct_u":0.034921,"pct_v":0.032738},{"dom":16,"pct_u":0.040648,"pct_v":0.042659},{"dom":17,"pct_u":0.033478,"pct_v":0.034534},{"dom":18,"pct_u":0.015201,"pct_v":0.015434},{"dom":19,"pct_u":0.004321,"pct_v":0.0},{"dom":20,"pct_u":0.05016,"pct_v":0.057613},{"dom":21,"pct_u":0.05752,"pct_v":0.04638},{"dom":22,"pct_u":0.034921,"pct_v":0.032738},{"dom":23,"pct_u":0.040648,"pct_v":0.042659},{"dom":24,"pct_u":0.033478,"pct_v":0.034534},{"dom":25,"pct_u":0.015201,"pct_v":0.015434},{"dom":26,"pct_u":0.004321,"pct_v":0.0},{"dom":27,"pct_u":0.057332,"pct_v":0.07338},{"dom":28,"pct_u":0.065744,"pct_v":0.059073},{"dom":29,"pct_u":0.039914,"pct_v":0.041697},{"dom":30,"pct_u":0.04646,"pct_v":0.054334}],"5":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.022495,"pct_v":0.000953},{"dom":3,"pct_u":0.005083,"pct_v":0.0},{"dom":4,"pct_u":0.030862,"pct_v":0.046984},{"dom":5,"pct_u":0.055003,"pct_v":0.069361},{"dom":6,"pct_u":0.0409,"pct_v":0.049446},{"dom":7,"pct_u":0.048539,"pct_v":0.061636},{"dom":8,"pct_u":0.047116,"pct_v":0.021594},{"dom":9,"pct_u":0.020685,"pct_v":0.000741},{"dom":10,"pct_u":0.0,"pct_v":0.0},{"dom":11,"pct_u":0.03028,"pct_v":0.046984},{"dom":12,"pct_u":0.053965,"pct_v":0.069361},{"dom":13,"pct_u":0.040128,"pct_v":0.049446},{"dom":14,"pct_u":0.047624,"pct_v":0.061636},{"dom":15,"pct_u":0.046228,"pct_v":0.021594},{"dom":16,"pct_u":0.020295,"pct_v":0.000741},{"dom":17,"pct_u":0.004585,"pct_v":0.0},{"dom":18,"pct_u":0.03028,"pct_v":0.046984},{"dom":19,"pct_u":0.053965,"pct_v":0.069361},{"dom":20,"pct_u":0.040128,"pct_v":0.049446},{"dom":21,"pct_u":0.047624,"pct_v":0.061636},{"dom":22,"pct_u":0.046228,"pct_v":0.021594},{"dom":23,"pct_u":0.020295,"pct_v":0.000741},{"dom":24,"pct_u":0.004585,"pct_v":0.0},{"dom":25,"pct_u":0.03028,"pct_v":0.046984},{"dom":26,"pct_u":0.053965,"pct_v":0.069361},{"dom":27,"pct_u":0.040128,"pct_v":0.049446},{"dom":28,"pct_u":0.047624,"pct_v":0.061636},{"dom":29,"pct_u":0.046228,"pct_v":0.021594},{"dom":30,"pct_u":0.020295,"pct_v":0.000741},{"dom":31,"pct_u":0.004585,"pct_v":0.0}],"6":[{"dom":1,"pct_u":0.035382,"pct_v":0.03498},{"dom":2,"pct_u":0.050141,"pct_v":0.050612},{"dom":3,"pct_u":0.038934,"pct_v":0.040097},{"dom":4,"pct_u":0.046558,"pct_v":0.047756},{"dom":5,"pct_u":0.040707,"pct_v":0.043395},{"dom":6,"pct_u":0.011178,"pct_v":0.010369},{"dom":7,"pct_u":0.004165,"pct_v":0.0},{"dom":8,"pct_u":0.035382,"pct_v":0.03498},{"dom":9,"pct_u":0.050141,"pct_v":0.050612},{"dom":10,"pct_u":0.038934,"pct_v":0.040097},{"dom":11,"pct_u":0.046558,"pct_v":0.047756},{"dom":12,"pct_u":0.040707,"pct_v":0.043395},{"dom":13,"pct_u":0.011178,"pct_v":0.010369},{"dom":14,"pct_u":0.004165,"pct_v":0.0},{"dom":15,"pct_u":0.035382,"pct_v":0.03498},{"dom":16,"pct_u":0.050141,"pct_v":0.050612},{"dom":17,"pct_u":0.038934,"pct_v":0.040097},{"dom":18,"pct_u":0.046558,"pct_v":0.047756},{"dom":19,"pct_u":0.040707,"pct_v":0.043395},{"dom":20,"pct_u":0.011178,"pct_v":0.010369},{"dom":21,"pct_u":0.004165,"pct_v":0.0},{"dom":22,"pct_u":0.035382,"pct_v":0.03498},{"dom":23,"pct_u":0.050141,"pct_v":0.050612},{"dom":24,"pct_u":0.038934,"pct_v":0.040097},{"dom":25,"pct_u":0.046558,"pct_v":0.047756},{"dom":26,"pct_u":0.040707,"pct_v":0.043395},{"dom":27,"pct_u":0.011178,"pct_v":0.010369},{"dom":28,"pct_u":0.004165,"pct_v":0.0},{"dom":29,"pct_u":0.037955,"pct_v":0.037256},{"dom":30,"pct_u":0.053786,"pct_v":0.053906}],"7":[{"dom":1,"pct_u":0.035694,"pct_v":0.036759},{"dom":2,"pct_u":0.042356,"pct_v":0.037517},{"dom":3,"pct_u":0.044798,"pct_v":0.050925},{"dom":4,"pct_u":0.00538,"pct_v":0.0078},{"dom":5,"pct_u":0.004378,"pct_v":0.0},{"dom":6,"pct_u":0.028635,"pct_v":0.037234},{"dom":7,"pct_u":0.062553,"pct_v":0.066193},{"dom":8,"pct_u":0.035347,"pct_v":0.032805},{"dom":9,"pct_u":0.041944,"pct_v":0.033482},{"dom":10,"pct_u":0.044362,"pct_v":0.045447},{"dom":11,"pct_u":0.005327,"pct_v":0.006961},{"dom":12,"pct_u":0.004335,"pct_v":0.0},{"dom":13,"pct_u":0.028635,"pct_v":0.037234},{"dom":14,"pct_u":0.062553,"pct_v":0.066193},{"dom":15,"pct_u":0.035347,"pct_v":0.032805},{"dom":16,"pct_u":0.041944,"pct_v":0.033482},{"dom":17,"pct_u":0.044362,"pct_v":0.045447},{"dom":18,"pct_u":0.005327,"pct_v":0.006961},{"dom":19,"pct_u":0.004335,"pct_v":0.0},{"dom":20,"pct_u":0.028635,"pct_v":0.037234},{"dom":21,"pct_u":0.062553,"pct_v":0.066193},{"dom":22,"pct_u":0.035347,"pct_v":0.032805},{"dom":23,"pct_u":0.041944,"pct_v":0.033482},{"dom":24,"pct_u":0.044362,"pct_v":0.045447},{"dom":25,"pct_u":0.005327,"pct_v":0.006961},{"dom":26,"pct_u":0.004335,"pct_v":0.0},{"dom":27,"pct_u":0.026892,"pct_v":0.03472},{"dom":28,"pct_u":0.058745,"pct_v":0.061724},{"dom":29,"pct_u":0.033195,"pct_v":0.030591},{"dom":30,"pct_u":0.039391,"pct_v":0.031221},{"dom":31,"pct_u":0.041661,"pct_v":0.042379}],"8":[{"dom":1,"pct_u":0.020482,"pct_v":0.022521},{"dom":2,"pct_u":0.003402,"pct_v":0.0},{"dom":3,"pct_u":0.08205,"pct_v":0.103314},{"dom":4,"pct_u":0.0,"pct_v":0.0},{"dom":5,"pct_u":0.0,"pct_v":0.0},{"dom":6,"pct_u":0.0,"pct_v":0.0},{"dom":7,"pct_u":0.098592,"pct_v":0.076197},{"dom":8,"pct_u":0.046555,"pct_v":0.053308},{"dom":9,"pct_u":0.007734,"pct_v":0.0},{"dom":10,"pct_u":0.03631,"pct_v":0.043307},{"dom":11,"pct_u":0.0347,"pct_v":0.031151},{"dom":12,"pct_u":0.052183,"pct_v":0.05889},{"dom":13,"pct_u":0.044083,"pct_v":0.045186},{"dom":14,"pct_u":0.04363,"pct_v":0.03194},{"dom":15,"pct_u":0.020602,"pct_v":0.022346},{"dom":16,"pct_u":0.003422,"pct_v":0.0},{"dom":17,"pct_u":0.03631,"pct_v":0.043307},{"dom":18,"pct_u":0.0347,"pct_v":0.031151},{"dom":19,"pct_u":0.052183,"pct_v":0.05889},{"dom":20,"pct_u":0.044083,"pct_v":0.045186},{"dom":21,"pct_u":0.04363,"pct_v":0.03194},{"dom":22,"pct_u":0.020602,"pct_v":0.022346},{"dom":23,"pct_u":0.003422,"pct_v":0.0},{"dom":24,"pct_u":0.03631,"pct_v":0.043307},{"dom":25,"pct_u":0.0347,"pct_v":0.031151},{"dom":26,"pct_u":0.052183,"pct_v":0.05889},{"dom":27,"pct_u":0.044083,"pct_v":0.045186},{"dom":28,"pct_u":0.04363,"pct_v":0.03194},{"dom":29,"pct_u":0.020602,"pct_v":0.022346},{"dom":30,"pct_u":0.003422,"pct_v":0.0},{"dom":31,"pct_u":0.036396,"pct_v":0.0462}],"9":[{"dom":1,"pct_u":0.054636,"pct_v":0.053712},{"dom":2,"pct_u":0.026884,"pct_v":0.027588},{"dom":3,"pct_u":0.047749,"pct_v":0.047211},{"dom":4,"pct_u":0.046091,"pct_v":0.043766},{"dom":5,"pct_u":0.014758,"pct_v":0.015612},{"dom":6,"pct_u":0.004243,"pct_v":0.0},{"dom":7,"pct_u":0.032109,"pct_v":0.01329},{"dom":8,"pct_u":0.055626,"pct_v":0.06321},{"dom":9,"pct_u":0.027371,"pct_v":0.032466},{"dom":10,"pct_u":0.048615,"pct_v":0.055559},{"dom":11,"pct_u":0.046927,"pct_v":0.051505},{"dom":12,"pct_u":0.015025,"pct_v":0.018373},{"dom":13,"pct_u":0.00432,"pct_v":0.0},{"dom":14,"pct_u":0.042353,"pct_v":0.018197},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.036104,"pct_v":0.044454},{"dom":17,"pct_u":0.064123,"pct_v":0.076074},{"dom":18,"pct_u":0.061897,"pct_v":0.070522},{"dom":19,"pct_u":0.019819,"pct_v":0.025157},{"dom":20,"pct_u":0.005698,"pct_v":0.0},{"dom":21,"pct_u":0.032109,"pct_v":0.01329},{"dom":22,"pct_u":0.055626,"pct_v":0.06321},{"dom":23,"pct_u":0.027371,"pct_v":0.032466},{"dom":24,"pct_u":0.048615,"pct_v":0.055559},{"dom":25,"pct_u":0.046927,"pct_v":0.051505},{"dom":26,"pct_u":0.015025,"pct_v":0.018373},{"dom":27,"pct_u":0.00432,"pct_v":0.0},{"dom":28,"pct_u":0.032263,"pct_v":0.013282},{"dom":29,"pct_u":0.055893,"pct_v":0.06317},{"dom":30,"pct_u":0.027503,"pct_v":0.032446}],"10":[{"dom":1,"pct_u":0.045226,"pct_v":0.052038},{"dom":2,"pct_u":0.047501,"pct_v":0.048923},{"dom":3,"pct_u":0.014414,"pct_v":0.017093},{"dom":4,"pct_u":0.004228,"pct_v":0.0},{"dom":5,"pct_u":0.032589,"pct_v":0.035982},{"dom":6,"pct_u":0.040434,"pct_v":0.049157},{"dom":7,"pct_u":0.033985,"pct_v":0.03758},{"dom":8,"pct_u":0.047521,"pct_v":0.043095},{"dom":9,"pct_u":0.049912,"pct_v":0.040516},{"dom":10,"pct_u":0.015145,"pct_v":0.014155},{"dom":11,"pct_u":0.004442,"pct_v":0.0},{"dom":12,"pct_u":0.032589,"pct_v":0.035982},{"dom":13,"pct_u":0.040434,"pct_v":0.049157},{"dom":14,"pct_u":0.033985,"pct_v":0.03758},{"dom":15,"pct_u":0.047521,"pct_v":0.043095},{"dom":16,"pct_u":0.049912,"pct_v":0.040516},{"dom":17,"pct_u":0.015145,"pct_v":0.014155},{"dom":18,"pct_u":0.004442,"pct_v":0.0},{"dom":19,"pct_u":0.032589,"pct_v":0.035982},{"dom":20,"pct_u":0.040434,"pct_v":0.049157},{"dom":21,"pct_u":0.033985,"pct_v":0.03758},{"dom":22,"pct_u":0.047521,"pct_v":0.043095},{"dom":23,"pct_u":0.049912,"pct_v":0.040516},{"dom":24,"pct_u":0.015145,"pct_v":0.014155},{"dom":25,"pct_u":0.004442,"pct_v":0.0},{"dom":26,"pct_u":0.032137,"pct_v":0.035982},{"dom":27,"pct_u":0.039874,"pct_v":0.049157},{"dom":28,"pct_u":0.033515,"pct_v":0.03758},{"dom":29,"pct_u":0.046863,"pct_v":0.043095},{"dom":30,"pct_u":0.049221,"pct_v":0.040516},{"dom":31,"pct_u":0.014935,"pct_v":0.014155}],"11":[{"dom":1,"pct_u":0.008076,"pct_v":0.0},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.054846,"pct_v":0.053085},{"dom":4,"pct_u":0.047337,"pct_v":0.059901},{"dom":5,"pct_u":0.050252,"pct_v":0.050122},{"dom":6,"pct_u":0.05453,"pct_v":0.060593},{"dom":7,"pct_u":0.025745,"pct_v":0.016901},{"dom":8,"pct_u":0.009026,"pct_v":0.0},{"dom":9,"pct_u":0.022994,"pct_v":0.032995},{"dom":10,"pct_u":0.049629,"pct_v":0.045805},{"dom":11,"pct_u":0.042834,"pct_v":0.051686},{"dom":12,"pct_u":0.045472,"pct_v":0.043249},{"dom":13,"pct_u":0.049343,"pct_v":0.052284},{"dom":14,"pct_u":0.023296,"pct_v":0.014583},{"dom":15,"pct_u":0.008168,"pct_v":0.0},{"dom":16,"pct_u":0.022994,"pct_v":0.032995},{"dom":17,"pct_u":0.049629,"pct_v":0.045805},{"dom":18,"pct_u":0.042834,"pct_v":0.051686},{"dom":19,"pct_u":0.045472,"pct_v":0.043249},{"dom":20,"pct_u":0.049343,"pct_v":0.052284},{"dom":21,"pct_u":0.023296,"pct_v":0.014583},{"dom":22,"pct_u":0.008168,"pct_v":0.0},{"dom":23,"pct_u":0.022994,"pct_v":0.032995},{"dom":24,"pct_u":0.049629,"pct_v":0.045805},{"dom":25,"pct_u":0.042834,"pct_v":0.051686},{"dom":26,"pct_u":0.045472,"pct_v":0.043249},{"dom":27,"pct_u":0.049343,"pct_v":0.052284},{"dom":28,"pct_u":0.023296,"pct_v":0.014583},{"dom":29,"pct_u":0.008168,"pct_v":0.0},{"dom":30,"pct_u":0.024984,"pct_v":0.037592}],"12":[{"dom":1,"pct_u":0.040097,"pct_v":0.032858},{"dom":2,"pct_u":0.024918,"pct_v":0.032473},{"dom":3,"pct_u":0.042394,"pct_v":0.041214},{"dom":4,"pct_u":0.050389,"pct_v":0.045952},{"dom":5,"pct_u":0.020928,"pct_v":0.021699},{"dom":6,"pct_u":0.004388,"pct_v":0.0},{"dom":7,"pct_u":0.050846,"pct_v":0.039024},{"dom":8,"pct_u":0.033585,"pct_v":0.031581},{"dom":9,"pct_u":0.020871,"pct_v":0.031211},{"dom":10,"pct_u":0.035509,"pct_v":0.039612},{"dom":11,"pct_u":0.042205,"pct_v":0.044167},{"dom":12,"pct_u":0.017529,"pct_v":0.020856},{"dom":13,"pct_u":0.003676,"pct_v":0.0},{"dom":14,"pct_u":0.050846,"pct_v":0.039024},{"dom":15,"pct_u":0.033585,"pct_v":0.031581},{"dom":16,"pct_u":0.020871,"pct_v":0.031211},{"dom":17,"pct_u":0.035509,"pct_v":0.039612},{"dom":18,"pct_u":0.042205,"pct_v":0.044167},{"dom":19,"pct_u":0.017529,"pct_v":0.020856},{"dom":20,"pct_u":0.003676,"pct_v":0.0},{"dom":21,"pct_u":0.082081,"pct_v":0.065676},{"dom":22,"pct_u":0.054217,"pct_v":0.053149},{"dom":23,"pct_u":0.033692,"pct_v":0.052527},{"dom":24,"pct_u":0.0,"pct_v":0.0},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.028298,"pct_v":0.035099},{"dom":27,"pct_u":0.005934,"pct_v":0.0},{"dom":28,"pct_u":0.073743,"pct_v":0.056966},{"dom":29,"pct_u":0.048709,"pct_v":0.046101},{"dom":30,"pct_u":0.030269,"pct_v":0.045561},{"dom":31,"pct_u":0.0515,"pct_v":0.057824}]},"ni":{"1":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.110891,"pct_v":0.106467},{"dom":3,"pct_u":0.074698,"pct_v":0.094908},{"dom":4,"pct_u":0.016522,"pct_v":0.0},{"dom":5,"pct_u":0.022363,"pct_v":0.022756},{"dom":6,"pct_u":0.031097,"pct_v":0.037354},{"dom":7,"pct_u":0.031404,"pct_v":0.035806},{"dom":8,"pct_u":0.035262,"pct_v":0.035424},{"dom":9,"pct_u":0.044982,"pct_v":0.037027},{"dom":10,"pct_u":0.030301,"pct_v":0.033007},{"dom":11,"pct_u":0.006702,"pct_v":0.0},{"dom":12,"pct_u":0.022363,"pct_v":0.022756},{"dom":13,"pct_u":0.031097,"pct_v":0.037354},{"dom":14,"pct_u":0.031404,"pct_v":0.035806},{"dom":15,"pct_u":0.035262,"pct_v":0.035424},{"dom":16,"pct_u":0.044982,"pct_v":0.037027},{"dom":17,"pct_u":0.030301,"pct_v":0.033007},{"dom":18,"pct_u":0.006702,"pct_v":0.0},{"dom":19,"pct_u":0.022363,"pct_v":0.022756},{"dom":20,"pct_u":0.031097,"pct_v":0.037354},{"dom":21,"pct_u":0.031404,"pct_v":0.035806},{"dom":22,"pct_u":0.035262,"pct_v":0.035424},{"dom":23,"pct_u":0.044982,"pct_v":0.037027},{"dom":24,"pct_u":0.030301,"pct_v":0.033007},{"dom":25,"pct_u":0.006702,"pct_v":0.0},{"dom":26,"pct_u":0.021922,"pct_v":0.021979},{"dom":27,"pct_u":0.030483,"pct_v":0.03608},{"dom":28,"pct_u":0.030784,"pct_v":0.034584},{"dom":29,"pct_u":0.034567,"pct_v":0.034216},{"dom":30,"pct_u":0.044095,"pct_v":0.035764},{"dom":31,"pct_u":0.029703,"pct_v":0.031881}],"2":[{"dom":1,"pct_u":0.012944,"pct_v":0.008458},{"dom":2,"pct_u":0.032134,"pct_v":0.03866},{"dom":3,"pct_u":0.04355,"pct_v":0.045598},{"dom":4,"pct_u":0.049709,"pct_v":0.061387},{"dom":5,"pct_u":0.040711,"pct_v":0.01946},{"dom":6,"pct_u":0.058009,"pct_v":0.061259},{"dom":7,"pct_u":0.009183,"pct_v":0.012028},{"dom":8,"pct_u":0.014512,"pct_v":0.009493},{"dom":9,"pct_u":0.032134,"pct_v":0.03866},{"dom":10,"pct_u":0.04355,"pct_v":0.045598},{"dom":11,"pct_u":0.049709,"pct_v":0.061387},{"dom":12,"pct_u":0.040711,"pct_v":0.01946},{"dom":13,"pct_u":0.058009,"pct_v":0.061259},{"dom":14,"pct_u":0.009183,"pct_v":0.012028},{"dom":15,"pct_u":0.014512,"pct_v":0.009493},{"dom":16,"pct_u":0.032134,"pct_v":0.03866},{"dom":17,"pct_u":0.04355,"pct_v":0.045598},{"dom":18,"pct_u":0.049709,"pct_v":0.061387},{"dom":19,"pct_u":0.040711,"pct_v":0.01946},{"dom":20,"pct_u":0.058009,"pct_v":0.061259},{"dom":21,"pct_u":0.009183,"pct_v":0.012028},{"dom":22,"pct_u":0.014512,"pct_v":0.009493},{"dom":23,"pct_u":0.033558,"pct_v":0.0402},{"dom":24,"pct_u":0.04548,"pct_v":0.047414},{"dom":25,"pct_u":0.051912,"pct_v":0.063832},{"dom":26,"pct_u":0.042515,"pct_v":0.020235},{"dom":27,"pct_u":0.06058,"pct_v":0.063698},{"dom":28,"pct_u":0.00959,"pct_v":0.012507}],"3":[{"dom":1,"pct_u":0.003725,"pct_v":0.0},{"dom":2,"pct_u":0.031207,"pct_v":0.025818},{"dom":3,"pct_u":0.042256,"pct_v":0.061929},{"dom":4,"pct_u":0.037316,"pct_v":0.016451},{"dom":5,"pct_u":0.051599,"pct_v":0.050535},{"dom":6,"pct_u":0.035779,"pct_v":0.038843},{"dom":7,"pct_u":0.019577,"pct_v":0.025539},{"dom":8,"pct_u":0.003436,"pct_v":0.0},{"dom":9,"pct_u":0.031207,"pct_v":0.025818},{"dom":10,"pct_u":0.042256,"pct_v":0.061929},{"dom":11,"pct_u":0.037316,"pct_v":0.016451},{"dom":12,"pct_u":0.051599,"pct_v":0.050535},{"dom":13,"pct_u":0.035779,"pct_v":0.038843},{"dom":14,"pct_u":0.019577,"pct_v":0.025539},{"dom":15,"pct_u":0.003436,"pct_v":0.0},{"dom":16,"pct_u":0.031207,"pct_v":0.025818},{"dom":17,"pct_u":0.042256,"pct_v":0.061929},{"dom":18,"pct_u":0.037316,"pct_v":0.016451},{"dom":19,"pct_u":0.051599,"pct_v":0.050535},{"dom":20,"pct_u":0.035779,"pct_v":0.038843},{"dom":21,"pct_u":0.019577,"pct_v":0.025539},{"dom":22,"pct_u":0.003436,"pct_v":0.0},{"dom":23,"pct_u":0.031207,"pct_v":0.025818},{"dom":24,"pct_u":0.042256,"pct_v":0.061929},{"dom":25,"pct_u":0.037316,"pct_v":0.016451},{"dom":26,"pct_u":0.051599,"pct_v":0.050535},{"dom":27,"pct_u":0.035779,"pct_v":0.038843},{"dom":28,"pct_u":0.019577,"pct_v":0.025539},{"dom":29,"pct_u":0.003436,"pct_v":0.0},{"dom":30,"pct_u":0.047402,"pct_v":0.036348},{"dom":31,"pct_u":0.064185,"pct_v":0.08719}],"4":[{"dom":1,"pct_u":0.063738,"pct_v":0.055418},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.032427,"pct_v":0.03447},{"dom":5,"pct_u":0.020112,"pct_v":0.011991},{"dom":6,"pct_u":0.036367,"pct_v":0.040531},{"dom":7,"pct_u":0.04175,"pct_v":0.037378},{"dom":8,"pct_u":0.03982,"pct_v":0.036768},{"dom":9,"pct_u":0.040186,"pct_v":0.041488},{"dom":10,"pct_u":0.04373,"pct_v":0.046573},{"dom":11,"pct_u":0.020259,"pct_v":0.02287},{"dom":12,"pct_u":0.012565,"pct_v":0.007955},{"dom":13,"pct_u":0.036367,"pct_v":0.040531},{"dom":14,"pct_u":0.04175,"pct_v":0.037378},{"dom":15,"pct_u":0.03982,"pct_v":0.036768},{"dom":16,"pct_u":0.040186,"pct_v":0.041488},{"dom":17,"pct_u":0.04373,"pct_v":0.046573},{"dom":18,"pct_u":0.020259,"pct_v":0.02287},{"dom":19,"pct_u":0.012565,"pct_v":0.007955},{"dom":20,"pct_u":0.036367,"pct_v":0.040531},{"dom":21,"pct_u":0.04175,"pct_v":0.037378},{"dom":22,"pct_u":0.03982,"pct_v":0.036768},{"dom":23,"pct_u":0.040186,"pct_v":0.041488},{"dom":24,"pct_u":0.04373,"pct_v":0.046573},{"dom":25,"pct_u":0.020259,"pct_v":0.02287},{"dom":26,"pct_u":0.012565,"pct_v":0.007955},{"dom":27,"pct_u":0.041327,"pct_v":0.051241},{"dom":28,"pct_u":0.047444,"pct_v":0.047255},{"dom":29,"pct_u":0.045252,"pct_v":0.046484},{"dom":30,"pct_u":0.045668,"pct_v":0.052451}],"5":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.040966,"pct_v":0.026871},{"dom":3,"pct_u":0.01437,"pct_v":0.010364},{"dom":4,"pct_u":0.033605,"pct_v":0.048176},{"dom":5,"pct_u":0.037258,"pct_v":0.045681},{"dom":6,"pct_u":0.040041,"pct_v":0.052421},{"dom":7,"pct_u":0.044091,"pct_v":0.054837},{"dom":8,"pct_u":0.030072,"pct_v":0.008898},{"dom":9,"pct_u":0.037831,"pct_v":0.022139},{"dom":10,"pct_u":0.01327,"pct_v":0.008539},{"dom":11,"pct_u":0.033605,"pct_v":0.048176},{"dom":12,"pct_u":0.037258,"pct_v":0.045681},{"dom":13,"pct_u":0.040041,"pct_v":0.052421},{"dom":14,"pct_u":0.044091,"pct_v":0.054837},{"dom":15,"pct_u":0.030072,"pct_v":0.008898},{"dom":16,"pct_u":0.037831,"pct_v":0.022139},{"dom":17,"pct_u":0.01327,"pct_v":0.008539},{"dom":18,"pct_u":0.033605,"pct_v":0.048176},{"dom":19,"pct_u":0.037258,"pct_v":0.045681},{"dom":20,"pct_u":0.040041,"pct_v":0.052421},{"dom":21,"pct_u":0.044091,"pct_v":0.054837},{"dom":22,"pct_u":0.030072,"pct_v":0.008898},{"dom":23,"pct_u":0.037831,"pct_v":0.022139},{"dom":24,"pct_u":0.01327,"pct_v":0.008539},{"dom":25,"pct_u":0.040015,"pct_v":0.053056},{"dom":26,"pct_u":0.044364,"pct_v":0.050309},{"dom":27,"pct_u":0.047678,"pct_v":0.05773},{"dom":28,"pct_u":0.0525,"pct_v":0.060392},{"dom":29,"pct_u":0.035808,"pct_v":0.009799},{"dom":30,"pct_u":0.0,"pct_v":0.0},{"dom":31,"pct_u":0.015801,"pct_v":0.009404}],"6":[{"dom":1,"pct_u":0.036398,"pct_v":0.024522},{"dom":2,"pct_u":0.045261,"pct_v":0.057589},{"dom":3,"pct_u":0.041206,"pct_v":0.045824},{"dom":4,"pct_u":0.042592,"pct_v":0.046523},{"dom":5,"pct_u":0.043982,"pct_v":0.047875},{"dom":6,"pct_u":0.022294,"pct_v":0.009808},{"dom":7,"pct_u":0.0,"pct_v":0.0},{"dom":8,"pct_u":0.036398,"pct_v":0.024522},{"dom":9,"pct_u":0.045261,"pct_v":0.057589},{"dom":10,"pct_u":0.041206,"pct_v":0.045824},{"dom":11,"pct_u":0.042592,"pct_v":0.046523},{"dom":12,"pct_u":0.043982,"pct_v":0.047875},{"dom":13,"pct_u":0.022294,"pct_v":0.009808},{"dom":14,"pct_u":0.0,"pct_v":0.0},{"dom":15,"pct_u":0.036398,"pct_v":0.024522},{"dom":16,"pct_u":0.045261,"pct_v":0.057589},{"dom":17,"pct_u":0.041206,"pct_v":0.045824},{"dom":18,"pct_u":0.042592,"pct_v":0.046523},{"dom":19,"pct_u":0.043982,"pct_v":0.047875},{"dom":20,"pct_u":0.022294,"pct_v":0.009808},{"dom":21,"pct_u":0.0,"pct_v":0.0},{"dom":22,"pct_u":0.036398,"pct_v":0.024522},{"dom":23,"pct_u":0.045261,"pct_v":0.057589},{"dom":24,"pct_u":0.041206,"pct_v":0.045824},{"dom":25,"pct_u":0.042592,"pct_v":0.046523},{"dom":26,"pct_u":0.043982,"pct_v":0.047875},{"dom":27,"pct_u":0.022294,"pct_v":0.009808},{"dom":28,"pct_u":0.0,"pct_v":0.0},{"dom":29,"pct_u":0.032567,"pct_v":0.021333},{"dom":30,"pct_u":0.040496,"pct_v":0.0501}],"7":[{"dom":1,"pct_u":0.037523,"pct_v":0.037018},{"dom":2,"pct_u":0.044947,"pct_v":0.043233},{"dom":3,"pct_u":0.043201,"pct_v":0.045923},{"dom":4,"pct_u":0.013554,"pct_v":0.015599},{"dom":5,"pct_u":0.011687,"pct_v":0.007435},{"dom":6,"pct_u":0.029728,"pct_v":0.033132},{"dom":7,"pct_u":0.031544,"pct_v":0.034909},{"dom":8,"pct_u":0.039566,"pct_v":0.036591},{"dom":9,"pct_u":0.047395,"pct_v":0.042735},{"dom":10,"pct_u":0.045554,"pct_v":0.045394},{"dom":11,"pct_u":0.014292,"pct_v":0.015419},{"dom":12,"pct_u":0.012324,"pct_v":0.007349},{"dom":13,"pct_u":0.031489,"pct_v":0.034302},{"dom":14,"pct_u":0.033412,"pct_v":0.036141},{"dom":15,"pct_u":0.041909,"pct_v":0.037883},{"dom":16,"pct_u":0.050202,"pct_v":0.044244},{"dom":17,"pct_u":0.048252,"pct_v":0.046997},{"dom":18,"pct_u":0.015138,"pct_v":0.015964},{"dom":19,"pct_u":0.0,"pct_v":0.0},{"dom":20,"pct_u":0.029728,"pct_v":0.033132},{"dom":21,"pct_u":0.031544,"pct_v":0.034909},{"dom":22,"pct_u":0.039566,"pct_v":0.036591},{"dom":23,"pct_u":0.047395,"pct_v":0.042735},{"dom":24,"pct_u":0.045554,"pct_v":0.045394},{"dom":25,"pct_u":0.014292,"pct_v":0.015419},{"dom":26,"pct_u":0.012324,"pct_v":0.007349},{"dom":27,"pct_u":0.028822,"pct_v":0.035099},{"dom":28,"pct_u":0.030583,"pct_v":0.03698},{"dom":29,"pct_u":0.03836,"pct_v":0.038763},{"dom":30,"pct_u":0.04595,"pct_v":0.045271},{"dom":31,"pct_u":0.044166,"pct_v":0.048087}],"8":[{"dom":1,"pct_u":0.021791,"pct_v":0.003916},{"dom":2,"pct_u":0.012656,"pct_v":0.008599},{"dom":3,"pct_u":0.035641,"pct_v":0.038453},{"dom":4,"pct_u":0.032303,"pct_v":0.040139},{"dom":5,"pct_u":0.046319,"pct_v":0.050926},{"dom":6,"pct_u":0.038856,"pct_v":0.042581},{"dom":7,"pct_u":0.044186,"pct_v":0.053321},{"dom":8,"pct_u":0.022875,"pct_v":0.003953},{"dom":9,"pct_u":0.013286,"pct_v":0.008681},{"dom":10,"pct_u":0.035641,"pct_v":0.038453},{"dom":11,"pct_u":0.032303,"pct_v":0.040139},{"dom":12,"pct_u":0.046319,"pct_v":0.050926},{"dom":13,"pct_u":0.038856,"pct_v":0.042581},{"dom":14,"pct_u":0.044186,"pct_v":0.053321},{"dom":15,"pct_u":0.022875,"pct_v":0.003953},{"dom":16,"pct_u":0.013286,"pct_v":0.008681},{"dom":17,"pct_u":0.035641,"pct_v":0.038453},{"dom":18,"pct_u":0.032303,"pct_v":0.040139},{"dom":19,"pct_u":0.046319,"pct_v":0.050926},{"dom":20,"pct_u":0.038856,"pct_v":0.042581},{"dom":21,"pct_u":0.044186,"pct_v":0.053321},{"dom":22,"pct_u":0.022875,"pct_v":0.003953},{"dom":23,"pct_u":0.013286,"pct_v":0.008681},{"dom":24,"pct_u":0.035641,"pct_v":0.038453},{"dom":25,"pct_u":0.032303,"pct_v":0.040139},{"dom":26,"pct_u":0.046319,"pct_v":0.050926},{"dom":27,"pct_u":0.038856,"pct_v":0.042581},{"dom":28,"pct_u":0.044186,"pct_v":0.053321},{"dom":29,"pct_u":0.022875,"pct_v":0.003953},{"dom":30,"pct_u":0.013286,"pct_v":0.008681},{"dom":31,"pct_u":0.031692,"pct_v":0.035266}],"9":[{"dom":1,"pct_u":0.048973,"pct_v":0.045868},{"dom":2,"pct_u":0.032568,"pct_v":0.034648},{"dom":3,"pct_u":0.033899,"pct_v":0.035773},{"dom":4,"pct_u":0.036286,"pct_v":0.037647},{"dom":5,"pct_u":0.034025,"pct_v":0.036935},{"dom":6,"pct_u":0.011552,"pct_v":0.0078},{"dom":7,"pct_u":0.032541,"pct_v":0.018216},{"dom":8,"pct_u":0.048588,"pct_v":0.049639},{"dom":9,"pct_u":0.032312,"pct_v":0.037497},{"dom":10,"pct_u":0.033632,"pct_v":0.038714},{"dom":11,"pct_u":0.036001,"pct_v":0.040742},{"dom":12,"pct_u":0.033758,"pct_v":0.039971},{"dom":13,"pct_u":0.011462,"pct_v":0.008441},{"dom":14,"pct_u":0.0,"pct_v":0.0},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.050126,"pct_v":0.052883},{"dom":17,"pct_u":0.052173,"pct_v":0.054599},{"dom":18,"pct_u":0.055847,"pct_v":0.05746},{"dom":19,"pct_u":0.052368,"pct_v":0.056373},{"dom":20,"pct_u":0.01778,"pct_v":0.011904},{"dom":21,"pct_u":0.032541,"pct_v":0.018216},{"dom":22,"pct_u":0.048588,"pct_v":0.049639},{"dom":23,"pct_u":0.032312,"pct_v":0.037497},{"dom":24,"pct_u":0.033632,"pct_v":0.038714},{"dom":25,"pct_u":0.036001,"pct_v":0.040742},{"dom":26,"pct_u":0.033758,"pct_v":0.039971},{"dom":27,"pct_u":0.011462,"pct_v":0.008441},{"dom":28,"pct_u":0.033795,"pct_v":0.01758},{"dom":29,"pct_u":0.05046,"pct_v":0.047906},{"dom":30,"pct_u":0.033557,"pct_v":0.036188}],"10":[{"dom":1,"pct_u":0.035877,"pct_v":0.036994},{"dom":2,"pct_u":0.046211,"pct_v":0.049179},{"dom":3,"pct_u":0.023767,"pct_v":0.033358},{"dom":4,"pct_u":0.004528,"pct_v":0.005407},{"dom":5,"pct_u":0.031177,"pct_v":0.033382},{"dom":6,"pct_u":0.034302,"pct_v":0.029657},{"dom":7,"pct_u":0.032908,"pct_v":0.034254},{"dom":8,"pct_u":0.042155,"pct_v":0.036778},{"dom":9,"pct_u":0.054298,"pct_v":0.048892},{"dom":10,"pct_u":0.027927,"pct_v":0.033163},{"dom":11,"pct_u":0.005321,"pct_v":0.005375},{"dom":12,"pct_u":0.031177,"pct_v":0.033382},{"dom":13,"pct_u":0.034302,"pct_v":0.029657},{"dom":14,"pct_u":0.032908,"pct_v":0.034254},{"dom":15,"pct_u":0.042155,"pct_v":0.036778},{"dom":16,"pct_u":0.054298,"pct_v":0.048892},{"dom":17,"pct_u":0.027927,"pct_v":0.033163},{"dom":18,"pct_u":0.005321,"pct_v":0.005375},{"dom":19,"pct_u":0.031177,"pct_v":0.033382},{"dom":20,"pct_u":0.034302,"pct_v":0.029657},{"dom":21,"pct_u":0.032908,"pct_v":0.034254},{"dom":22,"pct_u":0.042155,"pct_v":0.036778},{"dom":23,"pct_u":0.054298,"pct_v":0.048892},{"dom":24,"pct_u":0.027927,"pct_v":0.033163},{"dom":25,"pct_u":0.005321,"pct_v":0.005375},{"dom":26,"pct_u":0.028739,"pct_v":0.032522},{"dom":27,"pct_u":0.03162,"pct_v":0.028893},{"dom":28,"pct_u":0.030335,"pct_v":0.033371},{"dom":29,"pct_u":0.038859,"pct_v":0.03583},{"dom":30,"pct_u":0.050053,"pct_v":0.047632},{"dom":31,"pct_u":0.025743,"pct_v":0.032308}],"11":[{"dom":1,"pct_u":0.023728,"pct_v":0.011895},{"dom":2,"pct_u":0.025864,"pct_v":0.030654},{"dom":3,"pct_u":0.034525,"pct_v":0.040706},{"dom":4,"pct_u":0.030936,"pct_v":0.034202},{"dom":5,"pct_u":0.047674,"pct_v":0.052852},{"dom":6,"pct_u":0.038315,"pct_v":0.041937},{"dom":7,"pct_u":0.035518,"pct_v":0.026798},{"dom":8,"pct_u":0.025189,"pct_v":0.013552},{"dom":9,"pct_u":0.025864,"pct_v":0.030654},{"dom":10,"pct_u":0.034525,"pct_v":0.040706},{"dom":11,"pct_u":0.030936,"pct_v":0.034202},{"dom":12,"pct_u":0.047674,"pct_v":0.052852},{"dom":13,"pct_u":0.038315,"pct_v":0.041937},{"dom":14,"pct_u":0.035518,"pct_v":0.026798},{"dom":15,"pct_u":0.025189,"pct_v":0.013552},{"dom":16,"pct_u":0.025864,"pct_v":0.030654},{"dom":17,"pct_u":0.034525,"pct_v":0.040706},{"dom":18,"pct_u":0.030936,"pct_v":0.034202},{"dom":19,"pct_u":0.047674,"pct_v":0.052852},{"dom":20,"pct_u":0.038315,"pct_v":0.041937},{"dom":21,"pct_u":0.035518,"pct_v":0.026798},{"dom":22,"pct_u":0.025189,"pct_v":0.013552},{"dom":23,"pct_u":0.025864,"pct_v":0.030654},{"dom":24,"pct_u":0.034525,"pct_v":0.040706},{"dom":25,"pct_u":0.030936,"pct_v":0.034202},{"dom":26,"pct_u":0.047674,"pct_v":0.052852},{"dom":27,"pct_u":0.038315,"pct_v":0.041937},{"dom":28,"pct_u":0.035518,"pct_v":0.026798},{"dom":29,"pct_u":0.025189,"pct_v":0.013552},{"dom":30,"pct_u":0.024188,"pct_v":0.025297}],"12":[{"dom":1,"pct_u":0.032819,"pct_v":0.0},{"dom":2,"pct_u":0.031413,"pct_v":0.079585},{"dom":3,"pct_u":0.038071,"pct_v":0.033582},{"dom":4,"pct_u":0.038279,"pct_v":0.03423},{"dom":5,"pct_u":0.031003,"pct_v":0.025833},{"dom":6,"pct_u":0.011818,"pct_v":0.009592},{"dom":7,"pct_u":0.042936,"pct_v":0.030676},{"dom":8,"pct_u":0.0,"pct_v":0.0},{"dom":9,"pct_u":0.033631,"pct_v":0.075578},{"dom":10,"pct_u":0.040758,"pct_v":0.031892},{"dom":11,"pct_u":0.04098,"pct_v":0.032506},{"dom":12,"pct_u":0.033191,"pct_v":0.024532},{"dom":13,"pct_u":0.012652,"pct_v":0.009109},{"dom":14,"pct_u":0.036632,"pct_v":0.030676},{"dom":15,"pct_u":0.029976,"pct_v":0.0},{"dom":16,"pct_u":0.028693,"pct_v":0.075578},{"dom":17,"pct_u":0.034774,"pct_v":0.031892},{"dom":18,"pct_u":0.034963,"pct_v":0.032506},{"dom":19,"pct_u":0.028318,"pct_v":0.024532},{"dom":20,"pct_u":0.010795,"pct_v":0.009109},{"dom":21,"pct_u":0.044202,"pct_v":0.036481},{"dom":22,"pct_u":0.036171,"pct_v":0.0},{"dom":23,"pct_u":0.034622,"pct_v":0.089879},{"dom":24,"pct_u":0.04196,"pct_v":0.037926},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.03417,"pct_v":0.029175},{"dom":27,"pct_u":0.013025,"pct_v":0.010833},{"dom":28,"pct_u":0.078471,"pct_v":0.058981},{"dom":29,"pct_u":0.064214,"pct_v":0.0},{"dom":30,"pct_u":0.061464,"pct_v":0.145313},{"dom":31,"pct_u":0.0,"pct_v":0.0}]},"cr":{"1":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.195667,"pct_v":0.195234},{"dom":3,"pct_u":0.003522,"pct_v":0.003219},{"dom":4,"pct_u":0.000848,"pct_v":0.001621},{"dom":5,"pct_u":0.029856,"pct_v":0.036475},{"dom":6,"pct_u":0.053903,"pct_v":0.041609},{"dom":7,"pct_u":0.036195,"pct_v":0.037044},{"dom":8,"pct_u":0.036567,"pct_v":0.039314},{"dom":9,"pct_u":0.042565,"pct_v":0.044529},{"dom":10,"pct_u":0.000766,"pct_v":0.000734},{"dom":11,"pct_u":0.000184,"pct_v":0.00037},{"dom":12,"pct_u":0.029856,"pct_v":0.036475},{"dom":13,"pct_u":0.053903,"pct_v":0.041609},{"dom":14,"pct_u":0.036195,"pct_v":0.037044},{"dom":15,"pct_u":0.036567,"pct_v":0.039314},{"dom":16,"pct_u":0.042565,"pct_v":0.044529},{"dom":17,"pct_u":0.000766,"pct_v":0.000734},{"dom":18,"pct_u":0.000184,"pct_v":0.00037},{"dom":19,"pct_u":0.029856,"pct_v":0.036475},{"dom":20,"pct_u":0.053903,"pct_v":0.041609},{"dom":21,"pct_u":0.036195,"pct_v":0.037044},{"dom":22,"pct_u":0.036567,"pct_v":0.039314},{"dom":23,"pct_u":0.042565,"pct_v":0.044529},{"dom":24,"pct_u":0.000766,"pct_v":0.000734},{"dom":25,"pct_u":0.000184,"pct_v":0.00037},{"dom":26,"pct_u":0.029856,"pct_v":0.036475},{"dom":27,"pct_u":0.053903,"pct_v":0.041609},{"dom":28,"pct_u":0.036195,"pct_v":0.037044},{"dom":29,"pct_u":0.036567,"pct_v":0.039314},{"dom":30,"pct_u":0.042565,"pct_v":0.044529},{"dom":31,"pct_u":0.000766,"pct_v":0.000734}],"2":[{"dom":1,"pct_u":0.000231,"pct_v":0.000462},{"dom":2,"pct_u":0.053525,"pct_v":0.059533},{"dom":3,"pct_u":0.050676,"pct_v":0.046953},{"dom":4,"pct_u":0.049274,"pct_v":0.048024},{"dom":5,"pct_u":0.048591,"pct_v":0.043411},{"dom":6,"pct_u":0.046372,"pct_v":0.049916},{"dom":7,"pct_u":0.001325,"pct_v":0.001697},{"dom":8,"pct_u":0.000239,"pct_v":0.000467},{"dom":9,"pct_u":0.053525,"pct_v":0.059533},{"dom":10,"pct_u":0.050676,"pct_v":0.046953},{"dom":11,"pct_u":0.049274,"pct_v":0.048024},{"dom":12,"pct_u":0.048591,"pct_v":0.043411},{"dom":13,"pct_u":0.046372,"pct_v":0.049916},{"dom":14,"pct_u":0.001325,"pct_v":0.001697},{"dom":15,"pct_u":0.000239,"pct_v":0.000467},{"dom":16,"pct_u":0.053525,"pct_v":0.059533},{"dom":17,"pct_u":0.050676,"pct_v":0.046953},{"dom":18,"pct_u":0.049274,"pct_v":0.048024},{"dom":19,"pct_u":0.048591,"pct_v":0.043411},{"dom":20,"pct_u":0.046372,"pct_v":0.049916},{"dom":21,"pct_u":0.001325,"pct_v":0.001697},{"dom":22,"pct_u":0.000239,"pct_v":0.000467},{"dom":23,"pct_u":0.053525,"pct_v":0.059533},{"dom":24,"pct_u":0.050676,"pct_v":0.046953},{"dom":25,"pct_u":0.049274,"pct_v":0.048024},{"dom":26,"pct_u":0.048591,"pct_v":0.043411},{"dom":27,"pct_u":0.046372,"pct_v":0.049916},{"dom":28,"pct_u":0.001325,"pct_v":0.001697}],"3":[{"dom":1,"pct_u":0.000202,"pct_v":0.000393},{"dom":2,"pct_u":0.061614,"pct_v":0.05865},{"dom":3,"pct_u":0.047466,"pct_v":0.049165},{"dom":4,"pct_u":0.045514,"pct_v":0.039765},{"dom":5,"pct_u":0.023209,"pct_v":0.023566},{"dom":6,"pct_u":0.032587,"pct_v":0.037783},{"dom":7,"pct_u":0.00102,"pct_v":0.00108},{"dom":8,"pct_u":0.000179,"pct_v":0.000354},{"dom":9,"pct_u":0.061614,"pct_v":0.05865},{"dom":10,"pct_u":0.047466,"pct_v":0.049165},{"dom":11,"pct_u":0.045514,"pct_v":0.039765},{"dom":12,"pct_u":0.023209,"pct_v":0.023566},{"dom":13,"pct_u":0.032587,"pct_v":0.037783},{"dom":14,"pct_u":0.00102,"pct_v":0.00108},{"dom":15,"pct_u":0.000179,"pct_v":0.000354},{"dom":16,"pct_u":0.061614,"pct_v":0.05865},{"dom":17,"pct_u":0.047466,"pct_v":0.049165},{"dom":18,"pct_u":0.045514,"pct_v":0.039765},{"dom":19,"pct_u":0.023209,"pct_v":0.023566},{"dom":20,"pct_u":0.032587,"pct_v":0.037783},{"dom":21,"pct_u":0.00102,"pct_v":0.00108},{"dom":22,"pct_u":0.000179,"pct_v":0.000354},{"dom":23,"pct_u":0.061614,"pct_v":0.05865},{"dom":24,"pct_u":0.047466,"pct_v":0.049165},{"dom":25,"pct_u":0.045514,"pct_v":0.039765},{"dom":26,"pct_u":0.023209,"pct_v":0.023566},{"dom":27,"pct_u":0.032587,"pct_v":0.037783},{"dom":28,"pct_u":0.00102,"pct_v":0.00108},{"dom":29,"pct_u":0.000179,"pct_v":0.000354},{"dom":30,"pct_u":0.086672,"pct_v":0.086033},{"dom":31,"pct_u":0.06677,"pct_v":0.07212}],"4":[{"dom":1,"pct_u":0.063589,"pct_v":0.057044},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.000478,"pct_v":0.000915},{"dom":5,"pct_u":0.000278,"pct_v":0.000582},{"dom":6,"pct_u":0.057954,"pct_v":0.077166},{"dom":7,"pct_u":0.044315,"pct_v":0.026296},{"dom":8,"pct_u":0.045621,"pct_v":0.041243},{"dom":9,"pct_u":0.050892,"pct_v":0.053297},{"dom":10,"pct_u":0.035162,"pct_v":0.037449},{"dom":11,"pct_u":0.0,"pct_v":0.0},{"dom":12,"pct_u":0.000199,"pct_v":0.000421},{"dom":13,"pct_u":0.057869,"pct_v":0.07695},{"dom":14,"pct_u":0.04425,"pct_v":0.026222},{"dom":15,"pct_u":0.045554,"pct_v":0.041127},{"dom":16,"pct_u":0.050818,"pct_v":0.053147},{"dom":17,"pct_u":0.035111,"pct_v":0.037344},{"dom":18,"pct_u":0.000343,"pct_v":0.00066},{"dom":19,"pct_u":0.000199,"pct_v":0.00042},{"dom":20,"pct_u":0.057869,"pct_v":0.07695},{"dom":21,"pct_u":0.04425,"pct_v":0.026222},{"dom":22,"pct_u":0.045554,"pct_v":0.041127},{"dom":23,"pct_u":0.050818,"pct_v":0.053147},{"dom":24,"pct_u":0.035111,"pct_v":0.037344},{"dom":25,"pct_u":0.000343,"pct_v":0.00066},{"dom":26,"pct_u":0.000199,"pct_v":0.00042},{"dom":27,"pct_u":0.067995,"pct_v":0.091136},{"dom":28,"pct_u":0.051993,"pct_v":0.031056},{"dom":29,"pct_u":0.053525,"pct_v":0.048709},{"dom":30,"pct_u":0.05971,"pct_v":0.062945}],"5":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.000732,"pct_v":0.001615},{"dom":3,"pct_u":0.00025,"pct_v":0.000526},{"dom":4,"pct_u":0.034318,"pct_v":0.044383},{"dom":5,"pct_u":0.054153,"pct_v":0.05941},{"dom":6,"pct_u":0.056307,"pct_v":0.053351},{"dom":7,"pct_u":0.052879,"pct_v":0.035439},{"dom":8,"pct_u":0.051215,"pct_v":0.055217},{"dom":9,"pct_u":0.000657,"pct_v":0.001255},{"dom":10,"pct_u":0.000224,"pct_v":0.000408},{"dom":11,"pct_u":0.034318,"pct_v":0.044383},{"dom":12,"pct_u":0.054153,"pct_v":0.05941},{"dom":13,"pct_u":0.056307,"pct_v":0.053351},{"dom":14,"pct_u":0.052879,"pct_v":0.035439},{"dom":15,"pct_u":0.051215,"pct_v":0.055217},{"dom":16,"pct_u":0.000657,"pct_v":0.001255},{"dom":17,"pct_u":0.000224,"pct_v":0.000408},{"dom":18,"pct_u":0.034318,"pct_v":0.044383},{"dom":19,"pct_u":0.054153,"pct_v":0.05941},{"dom":20,"pct_u":0.056307,"pct_v":0.053351},{"dom":21,"pct_u":0.052879,"pct_v":0.035439},{"dom":22,"pct_u":0.051215,"pct_v":0.055217},{"dom":23,"pct_u":0.000657,"pct_v":0.001255},{"dom":24,"pct_u":0.000224,"pct_v":0.000408},{"dom":25,"pct_u":0.034318,"pct_v":0.044383},{"dom":26,"pct_u":0.054153,"pct_v":0.05941},{"dom":27,"pct_u":0.056307,"pct_v":0.053351},{"dom":28,"pct_u":0.052879,"pct_v":0.035439},{"dom":29,"pct_u":0.051215,"pct_v":0.055217},{"dom":30,"pct_u":0.000657,"pct_v":0.001255},{"dom":31,"pct_u":0.000224,"pct_v":0.000408}],"6":[{"dom":1,"pct_u":0.042926,"pct_v":0.044216},{"dom":2,"pct_u":0.055889,"pct_v":0.057918},{"dom":3,"pct_u":0.048651,"pct_v":0.050664},{"dom":4,"pct_u":0.039593,"pct_v":0.039719},{"dom":5,"pct_u":0.038867,"pct_v":0.031439},{"dom":6,"pct_u":0.00084,"pct_v":0.001472},{"dom":7,"pct_u":0.000209,"pct_v":0.00041},{"dom":8,"pct_u":0.042926,"pct_v":0.044216},{"dom":9,"pct_u":0.055889,"pct_v":0.057918},{"dom":10,"pct_u":0.048651,"pct_v":0.050664},{"dom":11,"pct_u":0.039593,"pct_v":0.039719},{"dom":12,"pct_u":0.038867,"pct_v":0.031439},{"dom":13,"pct_u":0.00084,"pct_v":0.001472},{"dom":14,"pct_u":0.000209,"pct_v":0.00041},{"dom":15,"pct_u":0.042926,"pct_v":0.044216},{"dom":16,"pct_u":0.055889,"pct_v":0.057918},{"dom":17,"pct_u":0.048651,"pct_v":0.050664},{"dom":18,"pct_u":0.039593,"pct_v":0.039719},{"dom":19,"pct_u":0.038867,"pct_v":0.031439},{"dom":20,"pct_u":0.00084,"pct_v":0.001472},{"dom":21,"pct_u":0.000209,"pct_v":0.00041},{"dom":22,"pct_u":0.042926,"pct_v":0.044216},{"dom":23,"pct_u":0.055889,"pct_v":0.057918},{"dom":24,"pct_u":0.048651,"pct_v":0.050664},{"dom":25,"pct_u":0.039593,"pct_v":0.039719},{"dom":26,"pct_u":0.038867,"pct_v":0.031439},{"dom":27,"pct_u":0.00084,"pct_v":0.001472},{"dom":28,"pct_u":0.000209,"pct_v":0.00041},{"dom":29,"pct_u":0.040009,"pct_v":0.041839},{"dom":30,"pct_u":0.052091,"pct_v":0.054805}],"7":[{"dom":1,"pct_u":0.028213,"pct_v":0.028763},{"dom":2,"pct_u":0.055686,"pct_v":0.051631},{"dom":3,"pct_u":0.044352,"pct_v":0.042837},{"dom":4,"pct_u":0.00097,"pct_v":0.001469},{"dom":5,"pct_u":0.00021,"pct_v":0.000544},{"dom":6,"pct_u":0.047691,"pct_v":0.053691},{"dom":7,"pct_u":0.032762,"pct_v":0.034275},{"dom":8,"pct_u":0.029941,"pct_v":0.030077},{"dom":9,"pct_u":0.059098,"pct_v":0.05399},{"dom":10,"pct_u":0.047069,"pct_v":0.044794},{"dom":11,"pct_u":0.001029,"pct_v":0.001536},{"dom":12,"pct_u":0.000223,"pct_v":0.000568},{"dom":13,"pct_u":0.047691,"pct_v":0.053691},{"dom":14,"pct_u":0.032762,"pct_v":0.034275},{"dom":15,"pct_u":0.029941,"pct_v":0.030077},{"dom":16,"pct_u":0.059098,"pct_v":0.05399},{"dom":17,"pct_u":0.047069,"pct_v":0.044794},{"dom":18,"pct_u":0.001029,"pct_v":0.001536},{"dom":19,"pct_u":0.000223,"pct_v":0.000568},{"dom":20,"pct_u":0.047917,"pct_v":0.05407},{"dom":21,"pct_u":0.032917,"pct_v":0.034517},{"dom":22,"pct_u":0.030083,"pct_v":0.03029},{"dom":23,"pct_u":0.059379,"pct_v":0.054372},{"dom":24,"pct_u":0.047292,"pct_v":0.045111},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.000224,"pct_v":0.000573},{"dom":27,"pct_u":0.047817,"pct_v":0.053971},{"dom":28,"pct_u":0.032848,"pct_v":0.034454},{"dom":29,"pct_u":0.03002,"pct_v":0.030234},{"dom":30,"pct_u":0.059254,"pct_v":0.054272},{"dom":31,"pct_u":0.047194,"pct_v":0.045028}],"8":[{"dom":1,"pct_u":0.000741,"pct_v":0.001057},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.048792,"pct_v":0.050685},{"dom":4,"pct_u":0.052553,"pct_v":0.050998},{"dom":5,"pct_u":0.052225,"pct_v":0.049881},{"dom":6,"pct_u":0.050966,"pct_v":0.044542},{"dom":7,"pct_u":0.032291,"pct_v":0.040434},{"dom":8,"pct_u":0.000743,"pct_v":0.001071},{"dom":9,"pct_u":0.000177,"pct_v":0.000145},{"dom":10,"pct_u":0.048945,"pct_v":0.050914},{"dom":11,"pct_u":0.052718,"pct_v":0.051229},{"dom":12,"pct_u":0.052388,"pct_v":0.050107},{"dom":13,"pct_u":0.051126,"pct_v":0.044744},{"dom":14,"pct_u":0.032392,"pct_v":0.040617},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.000178,"pct_v":0.000146},{"dom":17,"pct_u":0.048792,"pct_v":0.050685},{"dom":18,"pct_u":0.052553,"pct_v":0.050998},{"dom":19,"pct_u":0.052225,"pct_v":0.049881},{"dom":20,"pct_u":0.050966,"pct_v":0.044542},{"dom":21,"pct_u":0.032291,"pct_v":0.040434},{"dom":22,"pct_u":0.000743,"pct_v":0.001071},{"dom":23,"pct_u":0.000177,"pct_v":0.000145},{"dom":24,"pct_u":0.048792,"pct_v":0.050685},{"dom":25,"pct_u":0.052553,"pct_v":0.050998},{"dom":26,"pct_u":0.052225,"pct_v":0.049881},{"dom":27,"pct_u":0.050966,"pct_v":0.044542},{"dom":28,"pct_u":0.032291,"pct_v":0.040434},{"dom":29,"pct_u":0.000743,"pct_v":0.001071},{"dom":30,"pct_u":0.000177,"pct_v":0.000145},{"dom":31,"pct_u":0.048268,"pct_v":0.047914}],"9":[{"dom":1,"pct_u":0.04186,"pct_v":0.041236},{"dom":2,"pct_u":0.049,"pct_v":0.054259},{"dom":3,"pct_u":0.042496,"pct_v":0.034479},{"dom":4,"pct_u":0.04655,"pct_v":0.044153},{"dom":5,"pct_u":0.000462,"pct_v":0.005837},{"dom":6,"pct_u":0.000206,"pct_v":0.000391},{"dom":7,"pct_u":0.042884,"pct_v":0.03998},{"dom":8,"pct_u":0.042582,"pct_v":0.042502},{"dom":9,"pct_u":0.049845,"pct_v":0.055925},{"dom":10,"pct_u":0.043229,"pct_v":0.035538},{"dom":11,"pct_u":0.047353,"pct_v":0.045509},{"dom":12,"pct_u":0.00047,"pct_v":0.006016},{"dom":13,"pct_u":0.000209,"pct_v":0.000403},{"dom":14,"pct_u":0.052809,"pct_v":0.049247},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.061381,"pct_v":0.068888},{"dom":17,"pct_u":0.053234,"pct_v":0.043776},{"dom":18,"pct_u":0.058312,"pct_v":0.056057},{"dom":19,"pct_u":0.000579,"pct_v":0.00741},{"dom":20,"pct_u":0.000257,"pct_v":0.000497},{"dom":21,"pct_u":0.042884,"pct_v":0.03998},{"dom":22,"pct_u":0.042582,"pct_v":0.042502},{"dom":23,"pct_u":0.049845,"pct_v":0.055925},{"dom":24,"pct_u":0.043229,"pct_v":0.035538},{"dom":25,"pct_u":0.047353,"pct_v":0.045509},{"dom":26,"pct_u":0.00047,"pct_v":0.006016},{"dom":27,"pct_u":0.000209,"pct_v":0.000403},{"dom":28,"pct_u":0.044278,"pct_v":0.041024},{"dom":29,"pct_u":0.043966,"pct_v":0.043612},{"dom":30,"pct_u":0.051465,"pct_v":0.057386}],"10":[{"dom":1,"pct_u":0.032445,"pct_v":0.029931},{"dom":2,"pct_u":0.054509,"pct_v":0.05373},{"dom":3,"pct_u":0.000311,"pct_v":0.000882},{"dom":4,"pct_u":0.000217,"pct_v":0.000419},{"dom":5,"pct_u":0.045285,"pct_v":0.046277},{"dom":6,"pct_u":0.059013,"pct_v":0.060672},{"dom":7,"pct_u":0.037555,"pct_v":0.035722},{"dom":8,"pct_u":0.032018,"pct_v":0.030365},{"dom":9,"pct_u":0.053791,"pct_v":0.05451},{"dom":10,"pct_u":0.000307,"pct_v":0.000894},{"dom":11,"pct_u":0.000214,"pct_v":0.000425},{"dom":12,"pct_u":0.045285,"pct_v":0.046277},{"dom":13,"pct_u":0.059013,"pct_v":0.060672},{"dom":14,"pct_u":0.037555,"pct_v":0.035722},{"dom":15,"pct_u":0.032018,"pct_v":0.030365},{"dom":16,"pct_u":0.053791,"pct_v":0.05451},{"dom":17,"pct_u":0.000307,"pct_v":0.000894},{"dom":18,"pct_u":0.000214,"pct_v":0.000425},{"dom":19,"pct_u":0.045285,"pct_v":0.046277},{"dom":20,"pct_u":0.059013,"pct_v":0.060672},{"dom":21,"pct_u":0.037555,"pct_v":0.035722},{"dom":22,"pct_u":0.032018,"pct_v":0.030365},{"dom":23,"pct_u":0.053791,"pct_v":0.05451},{"dom":24,"pct_u":0.000307,"pct_v":0.000894},{"dom":25,"pct_u":0.000214,"pct_v":0.000425},{"dom":26,"pct_u":0.045285,"pct_v":0.046277},{"dom":27,"pct_u":0.059013,"pct_v":0.060672},{"dom":28,"pct_u":0.037555,"pct_v":0.035722},{"dom":29,"pct_u":0.032018,"pct_v":0.030365},{"dom":30,"pct_u":0.053791,"pct_v":0.05451},{"dom":31,"pct_u":0.000307,"pct_v":0.000894}],"11":[{"dom":1,"pct_u":0.000229,"pct_v":0.000452},{"dom":2,"pct_u":0.024971,"pct_v":0.026579},{"dom":3,"pct_u":0.04784,"pct_v":0.046113},{"dom":4,"pct_u":0.052812,"pct_v":0.048456},{"dom":5,"pct_u":0.051145,"pct_v":0.055212},{"dom":6,"pct_u":0.045372,"pct_v":0.040042},{"dom":7,"pct_u":0.021528,"pct_v":0.026379},{"dom":8,"pct_u":0.000219,"pct_v":0.000424},{"dom":9,"pct_u":0.024971,"pct_v":0.026579},{"dom":10,"pct_u":0.04784,"pct_v":0.046113},{"dom":11,"pct_u":0.052812,"pct_v":0.048456},{"dom":12,"pct_u":0.051145,"pct_v":0.055212},{"dom":13,"pct_u":0.045372,"pct_v":0.040042},{"dom":14,"pct_u":0.021528,"pct_v":0.026379},{"dom":15,"pct_u":0.000219,"pct_v":0.000424},{"dom":16,"pct_u":0.024971,"pct_v":0.026579},{"dom":17,"pct_u":0.04784,"pct_v":0.046113},{"dom":18,"pct_u":0.052812,"pct_v":0.048456},{"dom":19,"pct_u":0.051145,"pct_v":0.055212},{"dom":20,"pct_u":0.045372,"pct_v":0.040042},{"dom":21,"pct_u":0.021528,"pct_v":0.026379},{"dom":22,"pct_u":0.000219,"pct_v":0.000424},{"dom":23,"pct_u":0.024971,"pct_v":0.026579},{"dom":24,"pct_u":0.04784,"pct_v":0.046113},{"dom":25,"pct_u":0.052812,"pct_v":0.048456},{"dom":26,"pct_u":0.051145,"pct_v":0.055212},{"dom":27,"pct_u":0.045372,"pct_v":0.040042},{"dom":28,"pct_u":0.021528,"pct_v":0.026379},{"dom":29,"pct_u":0.000219,"pct_v":0.000424},{"dom":30,"pct_u":0.024219,"pct_v":0.02673}],"12":[{"dom":1,"pct_u":0.052269,"pct_v":0.048948},{"dom":2,"pct_u":0.032925,"pct_v":0.029286},{"dom":3,"pct_u":0.047422,"pct_v":0.058374},{"dom":4,"pct_u":0.049022,"pct_v":0.042733},{"dom":5,"pct_u":0.001974,"pct_v":0.002319},{"dom":6,"pct_u":0.000178,"pct_v":0.000359},{"dom":7,"pct_u":0.040913,"pct_v":0.047185},{"dom":8,"pct_u":0.046396,"pct_v":0.042303},{"dom":9,"pct_u":0.029225,"pct_v":0.025311},{"dom":10,"pct_u":0.042093,"pct_v":0.050449},{"dom":11,"pct_u":0.043514,"pct_v":0.036932},{"dom":12,"pct_u":0.001753,"pct_v":0.002004},{"dom":13,"pct_u":0.000158,"pct_v":0.00031},{"dom":14,"pct_u":0.040913,"pct_v":0.047185},{"dom":15,"pct_u":0.046396,"pct_v":0.042303},{"dom":16,"pct_u":0.029225,"pct_v":0.025311},{"dom":17,"pct_u":0.042093,"pct_v":0.050449},{"dom":18,"pct_u":0.043514,"pct_v":0.036932},{"dom":19,"pct_u":0.001753,"pct_v":0.002004},{"dom":20,"pct_u":0.000158,"pct_v":0.00031},{"dom":21,"pct_u":0.052002,"pct_v":0.057585},{"dom":22,"pct_u":0.058972,"pct_v":0.051627},{"dom":23,"pct_u":0.037147,"pct_v":0.030889},{"dom":24,"pct_u":0.053503,"pct_v":0.061569},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.002228,"pct_v":0.002446},{"dom":27,"pct_u":0.000201,"pct_v":0.000378},{"dom":28,"pct_u":0.052629,"pct_v":0.058392},{"dom":29,"pct_u":0.059682,"pct_v":0.05235},{"dom":30,"pct_u":0.037594,"pct_v":0.031322},{"dom":31,"pct_u":0.054147,"pct_v":0.062431}]},"pa":{"1":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.089904,"pct_v":0.089767},{"dom":3,"pct_u":0.098077,"pct_v":0.098198},{"dom":4,"pct_u":0.014011,"pct_v":0.014028},{"dom":5,"pct_u":0.045167,"pct_v":0.044003},{"dom":6,"pct_u":0.006208,"pct_v":0.006399},{"dom":7,"pct_u":0.0,"pct_v":0.0},{"dom":8,"pct_u":0.03401,"pct_v":0.035026},{"dom":9,"pct_u":0.0,"pct_v":0.0},{"dom":10,"pct_u":0.102031,"pct_v":0.101995},{"dom":11,"pct_u":0.014576,"pct_v":0.014571},{"dom":12,"pct_u":0.030872,"pct_v":0.030106},{"dom":13,"pct_u":0.004243,"pct_v":0.004378},{"dom":14,"pct_u":0.0,"pct_v":0.0},{"dom":15,"pct_u":0.023247,"pct_v":0.023964},{"dom":16,"pct_u":0.063928,"pct_v":0.063793},{"dom":17,"pct_u":0.06974,"pct_v":0.069784},{"dom":18,"pct_u":0.009963,"pct_v":0.009969},{"dom":19,"pct_u":0.030872,"pct_v":0.030106},{"dom":20,"pct_u":0.004243,"pct_v":0.004378},{"dom":21,"pct_u":0.0,"pct_v":0.0},{"dom":22,"pct_u":0.023247,"pct_v":0.023964},{"dom":23,"pct_u":0.063928,"pct_v":0.063793},{"dom":24,"pct_u":0.06974,"pct_v":0.069784},{"dom":25,"pct_u":0.009963,"pct_v":0.009969},{"dom":26,"pct_u":0.030872,"pct_v":0.030106},{"dom":27,"pct_u":0.004243,"pct_v":0.004378},{"dom":28,"pct_u":0.0,"pct_v":0.0},{"dom":29,"pct_u":0.023247,"pct_v":0.023964},{"dom":30,"pct_u":0.063928,"pct_v":0.063793},{"dom":31,"pct_u":0.06974,"pct_v":0.069784}],"2":[{"dom":1,"pct_u":0.012364,"pct_v":0.012368},{"dom":2,"pct_u":0.034645,"pct_v":0.030479},{"dom":3,"pct_u":0.038556,"pct_v":0.041659},{"dom":4,"pct_u":0.0,"pct_v":0.0},{"dom":5,"pct_u":0.016205,"pct_v":0.020367},{"dom":6,"pct_u":0.105611,"pct_v":0.103577},{"dom":7,"pct_u":0.040576,"pct_v":0.039728},{"dom":8,"pct_u":0.015087,"pct_v":0.014797},{"dom":9,"pct_u":0.034645,"pct_v":0.030479},{"dom":10,"pct_u":0.038556,"pct_v":0.041659},{"dom":11,"pct_u":0.0,"pct_v":0.0},{"dom":12,"pct_u":0.016205,"pct_v":0.020367},{"dom":13,"pct_u":0.105611,"pct_v":0.103577},{"dom":14,"pct_u":0.040576,"pct_v":0.039728},{"dom":15,"pct_u":0.015087,"pct_v":0.014797},{"dom":16,"pct_u":0.040942,"pct_v":0.036556},{"dom":17,"pct_u":0.0,"pct_v":0.0},{"dom":18,"pct_u":0.0,"pct_v":0.0},{"dom":19,"pct_u":0.01915,"pct_v":0.024427},{"dom":20,"pct_u":0.124808,"pct_v":0.124228},{"dom":21,"pct_u":0.047951,"pct_v":0.047649},{"dom":22,"pct_u":0.01783,"pct_v":0.017747},{"dom":23,"pct_u":0.034645,"pct_v":0.030479},{"dom":24,"pct_u":0.038556,"pct_v":0.041659},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.016205,"pct_v":0.020367},{"dom":27,"pct_u":0.105611,"pct_v":0.103577},{"dom":28,"pct_u":0.040576,"pct_v":0.039728}],"3":[{"dom":1,"pct_u":0.013959,"pct_v":0.013704},{"dom":2,"pct_u":0.03409,"pct_v":0.034497},{"dom":3,"pct_u":0.004686,"pct_v":0.005017},{"dom":4,"pct_u":0.024229,"pct_v":0.017223},{"dom":5,"pct_u":0.063202,"pct_v":0.067396},{"dom":6,"pct_u":0.065144,"pct_v":0.065874},{"dom":7,"pct_u":0.029586,"pct_v":0.030671},{"dom":8,"pct_u":0.011001,"pct_v":0.011423},{"dom":9,"pct_u":0.03409,"pct_v":0.034497},{"dom":10,"pct_u":0.004686,"pct_v":0.005017},{"dom":11,"pct_u":0.024229,"pct_v":0.017223},{"dom":12,"pct_u":0.063202,"pct_v":0.067396},{"dom":13,"pct_u":0.065144,"pct_v":0.065874},{"dom":14,"pct_u":0.029586,"pct_v":0.030671},{"dom":15,"pct_u":0.011001,"pct_v":0.011423},{"dom":16,"pct_u":0.03409,"pct_v":0.034497},{"dom":17,"pct_u":0.004686,"pct_v":0.005017},{"dom":18,"pct_u":0.024229,"pct_v":0.017223},{"dom":19,"pct_u":0.063202,"pct_v":0.067396},{"dom":20,"pct_u":0.065144,"pct_v":0.065874},{"dom":21,"pct_u":0.029586,"pct_v":0.030671},{"dom":22,"pct_u":0.011001,"pct_v":0.011423},{"dom":23,"pct_u":0.03409,"pct_v":0.034497},{"dom":24,"pct_u":0.004686,"pct_v":0.005017},{"dom":25,"pct_u":0.024229,"pct_v":0.017223},{"dom":26,"pct_u":0.063202,"pct_v":0.067396},{"dom":27,"pct_u":0.065144,"pct_v":0.065874},{"dom":28,"pct_u":0.029586,"pct_v":0.030671},{"dom":29,"pct_u":0.011001,"pct_v":0.011423},{"dom":30,"pct_u":0.051247,"pct_v":0.050541},{"dom":31,"pct_u":0.007044,"pct_v":0.00735}],"4":[{"dom":1,"pct_u":0.109122,"pct_v":0.110345},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.038972,"pct_v":0.037984},{"dom":5,"pct_u":0.015589,"pct_v":0.015764},{"dom":6,"pct_u":0.060389,"pct_v":0.060919},{"dom":7,"pct_u":0.003675,"pct_v":0.003822},{"dom":8,"pct_u":0.060389,"pct_v":0.060919},{"dom":9,"pct_u":0.025881,"pct_v":0.024026},{"dom":10,"pct_u":0.038102,"pct_v":0.039262},{"dom":11,"pct_u":0.021567,"pct_v":0.02097},{"dom":12,"pct_u":0.008627,"pct_v":0.008703},{"dom":13,"pct_u":0.060389,"pct_v":0.060919},{"dom":14,"pct_u":0.003675,"pct_v":0.003822},{"dom":15,"pct_u":0.060389,"pct_v":0.060919},{"dom":16,"pct_u":0.025881,"pct_v":0.024026},{"dom":17,"pct_u":0.038102,"pct_v":0.039262},{"dom":18,"pct_u":0.021567,"pct_v":0.02097},{"dom":19,"pct_u":0.008627,"pct_v":0.008703},{"dom":20,"pct_u":0.060389,"pct_v":0.060919},{"dom":21,"pct_u":0.003675,"pct_v":0.003822},{"dom":22,"pct_u":0.060389,"pct_v":0.060919},{"dom":23,"pct_u":0.025881,"pct_v":0.024026},{"dom":24,"pct_u":0.038102,"pct_v":0.039262},{"dom":25,"pct_u":0.021567,"pct_v":0.02097},{"dom":26,"pct_u":0.008627,"pct_v":0.008703},{"dom":27,"pct_u":0.072478,"pct_v":0.073275},{"dom":28,"pct_u":0.00441,"pct_v":0.004597},{"dom":29,"pct_u":0.072478,"pct_v":0.073275},{"dom":30,"pct_u":0.031062,"pct_v":0.0289}],"5":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.030509,"pct_v":0.030782},{"dom":3,"pct_u":0.011344,"pct_v":0.011465},{"dom":4,"pct_u":0.045215,"pct_v":0.046199},{"dom":5,"pct_u":0.006215,"pct_v":0.006719},{"dom":6,"pct_u":0.032136,"pct_v":0.023065},{"dom":7,"pct_u":0.076604,"pct_v":0.077437},{"dom":8,"pct_u":0.025535,"pct_v":0.029648},{"dom":9,"pct_u":0.039241,"pct_v":0.041074},{"dom":10,"pct_u":0.014591,"pct_v":0.015298},{"dom":11,"pct_u":0.045215,"pct_v":0.046199},{"dom":12,"pct_u":0.006215,"pct_v":0.006719},{"dom":13,"pct_u":0.032136,"pct_v":0.023065},{"dom":14,"pct_u":0.076604,"pct_v":0.077437},{"dom":15,"pct_u":0.025535,"pct_v":0.029648},{"dom":16,"pct_u":0.039241,"pct_v":0.041074},{"dom":17,"pct_u":0.014591,"pct_v":0.015298},{"dom":18,"pct_u":0.045215,"pct_v":0.046199},{"dom":19,"pct_u":0.006215,"pct_v":0.006719},{"dom":20,"pct_u":0.032136,"pct_v":0.023065},{"dom":21,"pct_u":0.076604,"pct_v":0.077437},{"dom":22,"pct_u":0.025535,"pct_v":0.029648},{"dom":23,"pct_u":0.039241,"pct_v":0.041074},{"dom":24,"pct_u":0.014591,"pct_v":0.015298},{"dom":25,"pct_u":0.045215,"pct_v":0.046199},{"dom":26,"pct_u":0.006215,"pct_v":0.006719},{"dom":27,"pct_u":0.032136,"pct_v":0.023065},{"dom":28,"pct_u":0.076604,"pct_v":0.077437},{"dom":29,"pct_u":0.025535,"pct_v":0.029648},{"dom":30,"pct_u":0.039241,"pct_v":0.041074},{"dom":31,"pct_u":0.014591,"pct_v":0.015298}],"6":[{"dom":1,"pct_u":0.054354,"pct_v":0.053086},{"dom":2,"pct_u":0.0,"pct_v":0.0},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.0,"pct_v":0.0},{"dom":5,"pct_u":0.122783,"pct_v":0.123921},{"dom":6,"pct_u":0.047173,"pct_v":0.047197},{"dom":7,"pct_u":0.01754,"pct_v":0.017578},{"dom":8,"pct_u":0.054354,"pct_v":0.053086},{"dom":9,"pct_u":0.0,"pct_v":0.0},{"dom":10,"pct_u":0.0,"pct_v":0.0},{"dom":11,"pct_u":0.0,"pct_v":0.0},{"dom":12,"pct_u":0.122783,"pct_v":0.123921},{"dom":13,"pct_u":0.047173,"pct_v":0.047197},{"dom":14,"pct_u":0.01754,"pct_v":0.017578},{"dom":15,"pct_u":0.054354,"pct_v":0.053086},{"dom":16,"pct_u":0.0,"pct_v":0.0},{"dom":17,"pct_u":0.0,"pct_v":0.0},{"dom":18,"pct_u":0.0,"pct_v":0.0},{"dom":19,"pct_u":0.122783,"pct_v":0.123921},{"dom":20,"pct_u":0.047173,"pct_v":0.047197},{"dom":21,"pct_u":0.01754,"pct_v":0.017578},{"dom":22,"pct_u":0.054354,"pct_v":0.053086},{"dom":23,"pct_u":0.0,"pct_v":0.0},{"dom":24,"pct_u":0.0,"pct_v":0.0},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.122783,"pct_v":0.123921},{"dom":27,"pct_u":0.047173,"pct_v":0.047197},{"dom":28,"pct_u":0.01754,"pct_v":0.017578},{"dom":29,"pct_u":0.032598,"pct_v":0.032872},{"dom":30,"pct_u":0.0,"pct_v":0.0}],"7":[{"dom":1,"pct_u":0.020349,"pct_v":0.014438},{"dom":2,"pct_u":0.064676,"pct_v":0.067031},{"dom":3,"pct_u":0.064676,"pct_v":0.067031},{"dom":4,"pct_u":0.024848,"pct_v":0.025711},{"dom":5,"pct_u":0.009239,"pct_v":0.009576},{"dom":6,"pct_u":0.02811,"pct_v":0.028358},{"dom":7,"pct_u":0.003864,"pct_v":0.004124},{"dom":8,"pct_u":0.019979,"pct_v":0.014158},{"dom":9,"pct_u":0.063499,"pct_v":0.065731},{"dom":10,"pct_u":0.063499,"pct_v":0.065731},{"dom":11,"pct_u":0.024396,"pct_v":0.025212},{"dom":12,"pct_u":0.009071,"pct_v":0.00939},{"dom":13,"pct_u":0.02811,"pct_v":0.028358},{"dom":14,"pct_u":0.003864,"pct_v":0.004124},{"dom":15,"pct_u":0.019979,"pct_v":0.014158},{"dom":16,"pct_u":0.063499,"pct_v":0.065731},{"dom":17,"pct_u":0.063499,"pct_v":0.065731},{"dom":18,"pct_u":0.024396,"pct_v":0.025212},{"dom":19,"pct_u":0.009071,"pct_v":0.00939},{"dom":20,"pct_u":0.02811,"pct_v":0.028358},{"dom":21,"pct_u":0.003864,"pct_v":0.004124},{"dom":22,"pct_u":0.019979,"pct_v":0.014158},{"dom":23,"pct_u":0.063499,"pct_v":0.065731},{"dom":24,"pct_u":0.063499,"pct_v":0.065731},{"dom":25,"pct_u":0.024396,"pct_v":0.025212},{"dom":26,"pct_u":0.009071,"pct_v":0.00939},{"dom":27,"pct_u":0.02811,"pct_v":0.028358},{"dom":28,"pct_u":0.003864,"pct_v":0.004124},{"dom":29,"pct_u":0.019979,"pct_v":0.014158},{"dom":30,"pct_u":0.063499,"pct_v":0.065731},{"dom":31,"pct_u":0.063499,"pct_v":0.065731}],"8":[{"dom":1,"pct_u":0.026757,"pct_v":0.027577},{"dom":2,"pct_u":0.009949,"pct_v":0.010271},{"dom":3,"pct_u":0.041525,"pct_v":0.046967},{"dom":4,"pct_u":0.0,"pct_v":0.0},{"dom":5,"pct_u":0.041691,"pct_v":0.047945},{"dom":6,"pct_u":0.042993,"pct_v":0.050503},{"dom":7,"pct_u":0.057324,"pct_v":0.029935},{"dom":8,"pct_u":0.036039,"pct_v":0.041757},{"dom":9,"pct_u":0.013401,"pct_v":0.015552},{"dom":10,"pct_u":0.041525,"pct_v":0.046967},{"dom":11,"pct_u":0.0,"pct_v":0.0},{"dom":12,"pct_u":0.041691,"pct_v":0.047945},{"dom":13,"pct_u":0.042993,"pct_v":0.050503},{"dom":14,"pct_u":0.057324,"pct_v":0.029935},{"dom":15,"pct_u":0.036039,"pct_v":0.041757},{"dom":16,"pct_u":0.013401,"pct_v":0.015552},{"dom":17,"pct_u":0.041525,"pct_v":0.046967},{"dom":18,"pct_u":0.0,"pct_v":0.0},{"dom":19,"pct_u":0.041691,"pct_v":0.047945},{"dom":20,"pct_u":0.042993,"pct_v":0.050503},{"dom":21,"pct_u":0.057324,"pct_v":0.029935},{"dom":22,"pct_u":0.036039,"pct_v":0.041757},{"dom":23,"pct_u":0.013401,"pct_v":0.015552},{"dom":24,"pct_u":0.041525,"pct_v":0.046967},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.041691,"pct_v":0.047945},{"dom":27,"pct_u":0.042993,"pct_v":0.050503},{"dom":28,"pct_u":0.057324,"pct_v":0.029935},{"dom":29,"pct_u":0.036039,"pct_v":0.041757},{"dom":30,"pct_u":0.013401,"pct_v":0.015552},{"dom":31,"pct_u":0.031401,"pct_v":0.031512}],"9":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.02293,"pct_v":0.016318},{"dom":3,"pct_u":0.072878,"pct_v":0.075758},{"dom":4,"pct_u":0.072878,"pct_v":0.076667},{"dom":5,"pct_u":0.028,"pct_v":0.029058},{"dom":6,"pct_u":0.010411,"pct_v":0.010823},{"dom":7,"pct_u":0.032261,"pct_v":0.032684},{"dom":8,"pct_u":0.0,"pct_v":0.0},{"dom":9,"pct_u":0.02293,"pct_v":0.016318},{"dom":10,"pct_u":0.072878,"pct_v":0.075758},{"dom":11,"pct_u":0.072878,"pct_v":0.076667},{"dom":12,"pct_u":0.028,"pct_v":0.029058},{"dom":13,"pct_u":0.010411,"pct_v":0.010823},{"dom":14,"pct_u":0.032261,"pct_v":0.032684},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.02293,"pct_v":0.016318},{"dom":17,"pct_u":0.072878,"pct_v":0.075758},{"dom":18,"pct_u":0.072878,"pct_v":0.076667},{"dom":19,"pct_u":0.028,"pct_v":0.029058},{"dom":20,"pct_u":0.010411,"pct_v":0.010823},{"dom":21,"pct_u":0.032261,"pct_v":0.032684},{"dom":22,"pct_u":0.0,"pct_v":0.0},{"dom":23,"pct_u":0.02293,"pct_v":0.016318},{"dom":24,"pct_u":0.072878,"pct_v":0.075758},{"dom":25,"pct_u":0.072878,"pct_v":0.076667},{"dom":26,"pct_u":0.028,"pct_v":0.029058},{"dom":27,"pct_u":0.010411,"pct_v":0.010823},{"dom":28,"pct_u":0.043743,"pct_v":0.044992},{"dom":29,"pct_u":0.0,"pct_v":0.0},{"dom":30,"pct_u":0.031091,"pct_v":0.022463}],"10":[{"dom":1,"pct_u":0.055468,"pct_v":0.057574},{"dom":2,"pct_u":0.046224,"pct_v":0.048383},{"dom":3,"pct_u":0.034334,"pct_v":0.035631},{"dom":4,"pct_u":0.012767,"pct_v":0.013271},{"dom":5,"pct_u":0.045466,"pct_v":0.04419},{"dom":6,"pct_u":0.0,"pct_v":0.0},{"dom":7,"pct_u":0.0,"pct_v":0.0},{"dom":8,"pct_u":0.063749,"pct_v":0.063484},{"dom":9,"pct_u":0.053124,"pct_v":0.05335},{"dom":10,"pct_u":0.039459,"pct_v":0.039288},{"dom":11,"pct_u":0.014672,"pct_v":0.014633},{"dom":12,"pct_u":0.045466,"pct_v":0.04419},{"dom":13,"pct_u":0.0,"pct_v":0.0},{"dom":14,"pct_u":0.0,"pct_v":0.0},{"dom":15,"pct_u":0.063749,"pct_v":0.063484},{"dom":16,"pct_u":0.053124,"pct_v":0.05335},{"dom":17,"pct_u":0.039459,"pct_v":0.039288},{"dom":18,"pct_u":0.014672,"pct_v":0.014633},{"dom":19,"pct_u":0.045466,"pct_v":0.04419},{"dom":20,"pct_u":0.0,"pct_v":0.0},{"dom":21,"pct_u":0.0,"pct_v":0.0},{"dom":22,"pct_u":0.063749,"pct_v":0.063484},{"dom":23,"pct_u":0.053124,"pct_v":0.05335},{"dom":24,"pct_u":0.039459,"pct_v":0.039288},{"dom":25,"pct_u":0.014672,"pct_v":0.014633},{"dom":26,"pct_u":0.045466,"pct_v":0.04419},{"dom":27,"pct_u":0.0,"pct_v":0.0},{"dom":28,"pct_u":0.0,"pct_v":0.0},{"dom":29,"pct_u":0.063749,"pct_v":0.063484},{"dom":30,"pct_u":0.053124,"pct_v":0.05335},{"dom":31,"pct_u":0.039459,"pct_v":0.039288}],"11":[{"dom":1,"pct_u":0.015872,"pct_v":0.016015},{"dom":2,"pct_u":0.082237,"pct_v":0.074967},{"dom":3,"pct_u":0.0,"pct_v":0.0},{"dom":4,"pct_u":0.0,"pct_v":0.0},{"dom":5,"pct_u":0.063901,"pct_v":0.048871},{"dom":6,"pct_u":0.024595,"pct_v":0.051163},{"dom":7,"pct_u":0.036893,"pct_v":0.035424},{"dom":8,"pct_u":0.026539,"pct_v":0.024824},{"dom":9,"pct_u":0.057719,"pct_v":0.054589},{"dom":10,"pct_u":0.0,"pct_v":0.0},{"dom":11,"pct_u":0.069814,"pct_v":0.063948},{"dom":12,"pct_u":0.044849,"pct_v":0.035586},{"dom":13,"pct_u":0.017262,"pct_v":0.037255},{"dom":14,"pct_u":0.025893,"pct_v":0.025795},{"dom":15,"pct_u":0.018626,"pct_v":0.018076},{"dom":16,"pct_u":0.055828,"pct_v":0.052807},{"dom":17,"pct_u":0.007674,"pct_v":0.00768},{"dom":18,"pct_u":0.067526,"pct_v":0.06186},{"dom":19,"pct_u":0.043379,"pct_v":0.034424},{"dom":20,"pct_u":0.016697,"pct_v":0.036039},{"dom":21,"pct_u":0.025045,"pct_v":0.024953},{"dom":22,"pct_u":0.018016,"pct_v":0.017486},{"dom":23,"pct_u":0.062514,"pct_v":0.059073},{"dom":24,"pct_u":0.008592,"pct_v":0.008591},{"dom":25,"pct_u":0.075614,"pct_v":0.0692},{"dom":26,"pct_u":0.048575,"pct_v":0.038509},{"dom":27,"pct_u":0.018696,"pct_v":0.040315},{"dom":28,"pct_u":0.0,"pct_v":0.0},{"dom":29,"pct_u":0.020174,"pct_v":0.019561},{"dom":30,"pct_u":0.04747,"pct_v":0.042991}],"12":[{"dom":1,"pct_u":0.0,"pct_v":0.0},{"dom":2,"pct_u":0.011667,"pct_v":0.0},{"dom":3,"pct_u":0.063109,"pct_v":0.087444},{"dom":4,"pct_u":0.061871,"pct_v":0.055061},{"dom":5,"pct_u":0.01591,"pct_v":0.014585},{"dom":6,"pct_u":0.013637,"pct_v":0.012562},{"dom":7,"pct_u":0.0,"pct_v":0.0},{"dom":8,"pct_u":0.0,"pct_v":0.0},{"dom":9,"pct_u":0.014634,"pct_v":0.0},{"dom":10,"pct_u":0.079155,"pct_v":0.106997},{"dom":11,"pct_u":0.077603,"pct_v":0.067373},{"dom":12,"pct_u":0.019955,"pct_v":0.017847},{"dom":13,"pct_u":0.017104,"pct_v":0.015371},{"dom":14,"pct_u":0.0,"pct_v":0.0},{"dom":15,"pct_u":0.0,"pct_v":0.0},{"dom":16,"pct_u":0.014634,"pct_v":0.0},{"dom":17,"pct_u":0.079155,"pct_v":0.106997},{"dom":18,"pct_u":0.077603,"pct_v":0.067373},{"dom":19,"pct_u":0.019955,"pct_v":0.017847},{"dom":20,"pct_u":0.017104,"pct_v":0.015371},{"dom":21,"pct_u":0.0,"pct_v":0.0},{"dom":22,"pct_u":0.0,"pct_v":0.0},{"dom":23,"pct_u":0.023313,"pct_v":0.0},{"dom":24,"pct_u":0.1261,"pct_v":0.158408},{"dom":25,"pct_u":0.0,"pct_v":0.0},{"dom":26,"pct_u":0.03179,"pct_v":0.026423},{"dom":27,"pct_u":0.027249,"pct_v":0.022756},{"dom":28,"pct_u":0.0,"pct_v":0.0},{"dom":29,"pct_u":0.0,"pct_v":0.0},{"dom":30,"pct_u":0.032524,"pct_v":0.0},{"dom":31,"pct_u":0.175927,"pct_v":0.207587}]}};
+
+// ══════════════════════════════════════════════════════════════════════
+// CONFIG & CONSTANTS
+// ══════════════════════════════════════════════════════════════════════
+const COUNTRIES=[
+  {id:'gt',name:'Guatemala',   flag:'🇬🇹',channels:['Tiendas Propias','Distribuidores','Institucional','Ecommerce']},
+  {id:'hn',name:'Honduras',    flag:'🇭🇳',channels:['Tiendas Propias','Distribuidores','Mayoristas','Exportación']},
+  {id:'sv',name:'El Salvador', flag:'🇸🇻',channels:['Tiendas Propias','Distribuidores','Marketplace']},
+  {id:'ni',name:'Nicaragua',   flag:'🇳🇮',channels:['Distribuidores','Mayoristas','Institucional']},
+  {id:'cr',name:'Costa Rica',  flag:'🇨🇷',channels:['Tiendas Propias','Distribuidores','Ecommerce','Marketplace']},
+  {id:'pa',name:'Panamá',      flag:'🇵🇦',channels:['Tiendas Propias','Institucional','Exportación','Ecommerce']},
+];
+const BUS=['camas','retail','complementos'];
+const BU_LABELS={camas:'Camas',retail:'Retail',complementos:'Complementos Descanso',corp:'Corporativo'};
+const BU_COLORS={camas:'var(--green)',retail:'var(--yellow)',complementos:'#bc8cff',corp:'var(--accent)'};
+
+let periodDias={actual:12,total:22};
+let currentBU='corp';
+let currentCountry=null;
+let currentMetric='values';
+let channelMetric='values';
+let controlChartInstance=null;
+let bb_active_filter='all';
+
+function today(){return new Date();}
+function currentMonth(){return today().getMonth()+1;}
+function currentDay(){return today().getDate();}
+
+// ══════════════════════════════════════════════════════════════════════
+// SEED DATA
+// ══════════════════════════════════════════════════════════════════════
+function rand(a,b){return Math.round(a+Math.random()*(b-a));}
+function seedData(){
+  let d={};
+  COUNTRIES.forEach(c=>{
+    d[c.id]={};
+    BUS.forEach(bu=>{
+      d[c.id][bu]={
+        metaUnidadesAA:rand(400,1000),metaUnidades:rand(450,1100),
+        metaValoresAA:rand(800000,2000000),metaValores:rand(900000,2200000),
+        ytdUnidades:rand(200,800),ytdValores:rand(400000,1600000),
+        bbUnidades:0,bbValores:0,
+        ytdInicioSemana_u:0,ytdInicioSemana_v:0,diasSemana:3,
+        diasHabil:periodDias.actual,diasTotal:periodDias.total,
+      };
+    });
+  });
+  return d;
+}
+let DATA=JSON.parse(localStorage.getItem('torre_data')||'null')||seedData();
+
+// ══════════════════════════════════════════════════════════════════════
+// BUILDING BLOCKS DATA
+// ══════════════════════════════════════════════════════════════════════
+let BB_DATA=JSON.parse(localStorage.getItem('torre_bb')||'null')||[
+  {id:1,pais:'Guatemala',bu:'Camas',accion:'Campaña Día del Padre',canal:'Tiendas Propias',resp:'Ana López',fecha:'2026-06-15',u:120,v:240000,prob:85,estado:'Confirmado',notas:''},
+  {id:2,pais:'Honduras',bu:'Retail',accion:'Promoción Fin de Mes',canal:'Mayoristas',resp:'Carlos Reyes',fecha:'2026-06-28',u:80,v:160000,prob:70,estado:'En gestión',notas:''},
+  {id:3,pais:'El Salvador',bu:'Complementos Descanso',accion:'Venta Corporativa Hotel',canal:'Institucional',resp:'María García',fecha:'2026-06-20',u:50,v:100000,prob:90,estado:'Confirmado',notas:''},
+  {id:4,pais:'Nicaragua',bu:'Camas',accion:'Recuperación Clientes',canal:'Distribuidores',resp:'Luis Pérez',fecha:'2026-06-25',u:35,v:70000,prob:60,estado:'En gestión',notas:''},
+  {id:5,pais:'Costa Rica',bu:'Retail',accion:'Activación Digital eCommerce',canal:'Ecommerce',resp:'Sofía Mora',fecha:'2026-06-30',u:45,v:90000,prob:75,estado:'En gestión',notas:''},
+  {id:6,pais:'Panamá',bu:'Camas',accion:'Negocio Especial Proyecto',canal:'Institucional',resp:'Diego Ruiz',fecha:'2026-06-18',u:60,v:150000,prob:80,estado:'Confirmado',notas:''},
+];
+let bb_next_id=BB_DATA.length+1;
+
+// ══════════════════════════════════════════════════════════════════════
+// CALCULATIONS — 3 METHODS
+// ══════════════════════════════════════════════════════════════════════
+function pct(v,t){return t?v/t*100:0;}
+function fmtN(n){return n>=1e6?`$${(n/1e6).toFixed(2)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n)}`;}
+function fmtU(n){return n>=1e3?`${(n/1e3).toFixed(1)}K`:`${Math.round(n)}`;}
+function fmtPct(n){return`${n>=0?'+':''}${n.toFixed(1)}%`;}
+function semaforo(p){return p>=100?'🟢':p>=95?'🟡':'🔴';}
+function semClass(p){return p>=100?'bg-green':p>=95?'bg-yellow':'bg-red';}
+
+/** Get accumulated seasonal % for a country up to a given day of month */
+function getAccPct(countryId, metric, month, dayOfMonth){
+  if(!SEASONAL_DATA[countryId]||!SEASONAL_DATA[countryId][month]) return null;
+  const field = metric==='u' ? 'pct_u' : 'pct_v';
+  return SEASONAL_DATA[countryId][month]
+    .filter(d=>d.dom<=dayOfMonth)
+    .reduce((s,d)=>s+d[field],0);
+}
+
+function derive(r, countryId){
+  const da=r.diasHabil||periodDias.actual;
+  const dt=r.diasTotal||periodDias.total;
+  const diasRestantes=Math.max(0,dt-da);
+  const avance=da/dt;
+  const mo=currentMonth(), dom=currentDay();
+
+  // ─── Method 1: Pro-rata ───────────────────────────────────────────
+  const projU_pr = da>0 ? r.ytdUnidades/da*dt : 0;
+  const projV_pr = da>0 ? r.ytdValores/da*dt  : 0;
+
+  // ─── Method 2: Seasonal ──────────────────────────────────────────
+  let projU_se=projU_pr, projV_se=projV_pr;
+  if(countryId){
+    const accU=getAccPct(countryId,'u',mo,dom);
+    const accV=getAccPct(countryId,'v',mo,dom);
+    if(accU&&accU>0.01) projU_se=r.ytdUnidades/accU;
+    if(accV&&accV>0.01) projV_se=r.ytdValores/accV;
+  }
+
+  // ─── Method 3: Weekly momentum ───────────────────────────────────
+  let projU_mo=projU_pr, projV_mo=projV_pr;
+  const diasSem=r.diasSemana||0;
+  if(diasSem>0){
+    const dU=r.ytdUnidades-(r.ytdInicioSemana_u||0);
+    const dV=r.ytdValores -(r.ytdInicioSemana_v||0);
+    const velU=dU/diasSem, velV=dV/diasSem;
+    projU_mo=r.ytdUnidades+velU*diasRestantes;
+    projV_mo=r.ytdValores +velV*diasRestantes;
+  }
+
+  // ─── Blend: simple average of 3 ──────────────────────────────────
+  const projU=(projU_pr+projU_se+projU_mo)/3;
+  const projV=(projV_pr+projV_se+projV_mo)/3;
+
+  // ─── Tendencia de cierre = blend + building blocks ────────────────
+  const cierreU=projU+(r.bbUnidades||0);
+  const cierreV=projV+(r.bbValores||0);
+
+  // ─── Promedios ───────────────────────────────────────────────────
+  const avgDiaU=da>0?r.ytdUnidades/da:0;
+  const avgDiaV=da>0?r.ytdValores/da:0;
+
+  // ─── PPU ─────────────────────────────────────────────────────────
+  const ppuAA  =r.metaUnidadesAA>0?r.metaValoresAA/r.metaUnidadesAA:0;
+  const ppuMeta=r.metaUnidades>0  ?r.metaValores/r.metaUnidades:0;
+  const ppuYTD =r.ytdUnidades>0   ?r.ytdValores/r.ytdUnidades:0;
+  const ppuCierre=cierreU>0?cierreV/cierreU:0;
+
+  // ─── Cumplimientos vs meta proporcional ──────────────────────────
+  const metaMTDU=r.metaUnidades*avance, metaMTDV=r.metaValores*avance;
+  const cumU=pct(r.ytdUnidades,metaMTDU), cumV=pct(r.ytdValores,metaMTDV);
+  const cumProjU=pct(projU,r.metaUnidades), cumProjV=pct(projV,r.metaValores);
+  const cumCierreU=pct(cierreU,r.metaUnidades), cumCierreV=pct(cierreV,r.metaValores);
+
+  // ─── Gaps ─────────────────────────────────────────────────────────
+  const gapU=r.ytdUnidades-metaMTDU, gapV=r.ytdValores-metaMTDV;
+
+  // ─── BB coverage ─────────────────────────────────────────────────
+  const bbGapU=Math.max(0,r.metaUnidades-projU);
+  const bbGapV=Math.max(0,r.metaValores-projV);
+  const bbCovU=bbGapU>0?Math.min(100,pct(r.bbUnidades||0,bbGapU)):100;
+  const bbCovV=bbGapV>0?Math.min(100,pct(r.bbValores||0,bbGapV)):100;
+
+  // ─── Crecimientos ────────────────────────────────────────────────
+  const crecMetaV=pct(r.metaValores-r.metaValoresAA,r.metaValoresAA);
+  const crecCierreV=pct(cierreV-r.metaValoresAA,r.metaValoresAA);
+  const crecCierreU=pct(cierreU-r.metaUnidadesAA,r.metaUnidadesAA);
+
+  return {
+    ...r,da,dt,avance,diasRestantes,
+    projU_pr,projV_pr,projU_se,projV_se,projU_mo,projV_mo,
+    projU,projV,cierreU,cierreV,
+    avgDiaU,avgDiaV,
+    ppuAA,ppuMeta,ppuYTD,ppuCierre,
+    metaMTDU,metaMTDV,cumU,cumV,
+    cumProjU,cumProjV,cumCierreU,cumCierreV,
+    gapU,gapV,bbGapU,bbGapV,bbCovU,bbCovV,
+    crecMetaV,crecCierreV,crecCierreU,
+  };
+}
+
+function calcBU(buId){
+  // Aggregate per-country projections (more accurate than aggregating inputs)
+  let tot={metaUnidades:0,metaValores:0,metaUnidadesAA:0,metaValoresAA:0,
+           ytdUnidades:0,ytdValores:0,bbUnidades:0,bbValores:0,
+           projU_pr:0,projV_pr:0,projU_se:0,projV_se:0,projU_mo:0,projV_mo:0,
+           projU:0,projV:0,cierreU:0,cierreV:0,avgDiaU:0,avgDiaV:0};
+  COUNTRIES.forEach(c=>{
+    const d=derive(DATA[c.id][buId],c.id);
+    tot.metaUnidades+=d.metaUnidades;tot.metaValores+=d.metaValores;
+    tot.metaUnidadesAA+=d.metaUnidadesAA;tot.metaValoresAA+=d.metaValoresAA;
+    tot.ytdUnidades+=d.ytdUnidades;tot.ytdValores+=d.ytdValores;
+    tot.bbUnidades+=d.bbUnidades||0;tot.bbValores+=d.bbValores||0;
+    tot.projU_pr+=d.projU_pr;tot.projV_pr+=d.projV_pr;
+    tot.projU_se+=d.projU_se;tot.projV_se+=d.projV_se;
+    tot.projU_mo+=d.projU_mo;tot.projV_mo+=d.projV_mo;
+    tot.projU+=d.projU;tot.projV+=d.projV;
+    tot.cierreU+=d.cierreU;tot.cierreV+=d.cierreV;
+    tot.avgDiaU+=d.avgDiaU;tot.avgDiaV+=d.avgDiaV;
+  });
+  const da=periodDias.actual,dt=periodDias.total,avance=da/dt;
+  const metaMTDV=tot.metaValores*avance,metaMTDU=tot.metaUnidades*avance;
+  const cumV=pct(tot.ytdValores,metaMTDV),cumU=pct(tot.ytdUnidades,metaMTDU);
+  const cumProjV=pct(tot.projV,tot.metaValores),cumCierreV=pct(tot.cierreV,tot.metaValores);
+  const cumCierreU=pct(tot.cierreU,tot.metaUnidades);
+  const bbGapV=Math.max(0,tot.metaValores-tot.projV);
+  const bbCovV=bbGapV>0?Math.min(100,pct(tot.bbValores,bbGapV)):100;
+  const gapV=tot.ytdValores-metaMTDV,gapU=tot.ytdUnidades-metaMTDU;
+  const crecMetaV=pct(tot.metaValores-tot.metaValoresAA,tot.metaValoresAA);
+  const crecCierreV=pct(tot.cierreV-tot.metaValoresAA,tot.metaValoresAA);
+  const crecCierreU=pct(tot.cierreU-tot.metaUnidadesAA,tot.metaUnidadesAA);
+  return {...tot,da,dt,avance,cumV,cumU,cumProjV,cumCierreV,cumCierreU,
+          metaMTDV,metaMTDU,gapV,gapU,bbGapV,bbCovV,crecMetaV,crecCierreV,crecCierreU,
+          ppuYTD:tot.ytdUnidades>0?tot.ytdValores/tot.ytdUnidades:0,
+          ppuMeta:tot.metaUnidades>0?tot.metaValores/tot.metaUnidades:0,
+          ppuCierre:tot.cierreU>0?tot.cierreV/tot.cierreU:0,
+          ppuAA:tot.metaUnidadesAA>0?tot.metaValoresAA/tot.metaUnidadesAA:0};
+}
+
+function calcCorp(countryId){
+  let res=null;
+  const countries=countryId?[COUNTRIES.find(c=>c.id===countryId)]:COUNTRIES;
+  BUS.forEach(bu=>{
+    const d=countryId?derive(DATA[countryId][bu],countryId):calcBU(bu);
+    if(!res){res={...d};}
+    else{
+      ['metaUnidades','metaValores','metaUnidadesAA','metaValoresAA',
+       'ytdUnidades','ytdValores','projU','projV','cierreU','cierreV',
+       'projU_pr','projV_pr','projU_se','projV_se','projU_mo','projV_mo',
+       'bbUnidades','bbValores'].forEach(k=>res[k]=(res[k]||0)+(d[k]||0));
+    }
+  });
+  if(!res) return derive({metaUnidades:0,metaValores:0,metaUnidadesAA:0,metaValoresAA:0,ytdUnidades:0,ytdValores:0,bbUnidades:0,bbValores:0,diasHabil:periodDias.actual,diasTotal:periodDias.total},null);
+  const da=periodDias.actual,dt=periodDias.total,avance=da/dt;
+  const metaMTDV=res.metaValores*avance,metaMTDU=res.metaUnidades*avance;
+  res.da=da;res.dt=dt;res.avance=avance;
+  res.cumV=pct(res.ytdValores,metaMTDV);res.cumU=pct(res.ytdUnidades,metaMTDU);
+  res.cumCierreV=pct(res.cierreV,res.metaValores);res.cumCierreU=pct(res.cierreU,res.metaUnidades);
+  res.gapV=res.ytdValores-metaMTDV;res.gapU=res.ytdUnidades-metaMTDU;
+  res.bbGapV=Math.max(0,res.metaValores-res.projV);
+  res.bbCovV=res.bbGapV>0?Math.min(100,pct(res.bbValores||0,res.bbGapV)):100;
+  res.ppuYTD=res.ytdUnidades>0?res.ytdValores/res.ytdUnidades:0;
+  res.ppuCierre=res.cierreU>0?res.cierreV/res.cierreU:0;
+  res.crecCierreV=pct(res.cierreV-res.metaValoresAA,res.metaValoresAA);
+  res.avgDiaV=da>0?res.ytdValores/da:0;
+  return res;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TABLE RENDERING
+// ══════════════════════════════════════════════════════════════════════
+function buildHeaders(m){
+  const defs={
+    values:{
+      meta:['Meta $','AA $','Crec%'],
+      como:['YTD $','Cum%','Gap $','Avg/Día'],
+      pror:['Proy$'],seas:['Proy$'],mom:['Proy$'],
+      blend:['Blend$','Cum%'],
+      bb:['Gap$','BB$','Cob%'],
+      cierre:['Cierre$','Cum%','Crec%','PPU']},
+    units:{
+      meta:['Meta U','AA U','Crec%'],
+      como:['YTD U','Cum%','Gap U','Avg/Día'],
+      pror:['Proy U'],seas:['Proy U'],mom:['Proy U'],
+      blend:['Blend U','Cum%'],
+      bb:['Gap U','BB U','Cob%'],
+      cierre:['Cierre U','Cum%','Crec%','PPU']},
+    ppu:{
+      meta:['PPU AA','PPU Meta','Var%'],
+      como:['PPU YTD','—','—','—'],
+      pror:['—'],seas:['—'],mom:['—'],
+      blend:['PPU Blend','—'],
+      bb:['—','—','—'],
+      cierre:['PPU Cierre','—','—','—']},
+  };
+  const d=defs[m]||defs.values;
+  const groups=[
+    ['META','c-meta',d.meta],['COMO VAMOS','c-como',d.como],
+    ['PRO-RATA','c-pror',d.pror],['ESTACIONAL','c-seas',d.seas],['MOMENTUM','c-mom',d.mom],
+    ['BLEND ★','c-blend',d.blend],
+    ['BUILDING BLOCKS','c-bb',d.bb],['TEND. CIERRE','c-cierre',d.cierre],
+  ];
+  let r1='<tr><th class="country-col" style="text-align:left;min-width:130px" rowspan="1">País / Canal</th>';
+  let r2='<tr><th style="text-align:left;min-width:130px"></th>';
+  groups.forEach(([lbl,cls,cols])=>{
+    r1+=`<th class="grp ${cls}" colspan="${cols.length}">${lbl}</th>`;
+    cols.forEach(c=>r2+=`<th class="${cls}">${c}</th>`);
+  });
+  return r1+'</tr>'+r2+'</tr>';
+}
+
+function buildRow(label,flag,d,m,onclick=''){
+  const isV=m==='values',isU=m==='units';
+  const semV=semaforo(d.cumV||0);
+  const colSeq=['c-meta','c-meta','c-meta','c-como','c-como','c-como','c-como',
+                'c-pror','c-seas','c-mom','c-blend','c-blend',
+                'c-bb','c-bb','c-bb','c-cierre','c-cierre','c-cierre','c-cierre'];
+  let cells=[];
+  if(isV){
+    const crecMeta=pct(d.metaValores-d.metaValoresAA,d.metaValoresAA);
+    cells=[
+      fmtN(d.metaValores),fmtN(d.metaValoresAA||0),
+      `<span class="${crecMeta>=0?'pos':'neg'}">${fmtPct(crecMeta)}</span>`,
+      fmtN(d.ytdValores),
+      `<span class="${(d.cumV||0)>=100?'pos':(d.cumV||0)>=95?'warn':'neg'}">${(d.cumV||0).toFixed(1)}%</span>`,
+      `<span class="${(d.gapV||0)>=0?'pos':'neg'}">${fmtN(Math.abs(d.gapV||0))}</span>`,
+      fmtN(d.avgDiaV||0),
+      // 3 methods
+      `<span style="color:#888">${fmtN(d.projV_pr||0)}</span>`,
+      `<span style="color:var(--green)">${fmtN(d.projV_se||0)}</span>`,
+      `<span style="color:#bc8cff">${fmtN(d.projV_mo||0)}</span>`,
+      // blend
+      `<strong style="color:#f0b429">${fmtN(d.projV||0)}</strong>`,
+      `<span class="${(d.cumProjV||0)>=100?'pos':(d.cumProjV||0)>=95?'warn':'neg'}">${(d.cumProjV||0).toFixed(1)}%</span>`,
+      // BB
+      fmtN(d.bbGapV||0),fmtN(d.bbValores||0),
+      `<span class="${(d.bbCovV||0)>=95?'pos':(d.bbCovV||0)>=80?'warn':'neg'}">${(d.bbCovV||0).toFixed(0)}%</span>`,
+      // Cierre
+      `<strong>${fmtN(d.cierreV||0)}</strong>`,
+      `<span class="${(d.cumCierreV||0)>=100?'pos':(d.cumCierreV||0)>=95?'warn':'neg'}">${(d.cumCierreV||0).toFixed(1)}%</span>`,
+      `<span class="${(d.crecCierreV||0)>=0?'pos':'neg'}">${fmtPct(d.crecCierreV||0)}</span>`,
+      fmtN(d.ppuCierre||0),
+    ];
+  } else if(isU){
+    cells=[
+      fmtU(d.metaUnidades),fmtU(d.metaUnidadesAA||0),
+      `<span class="${pct(d.metaUnidades-(d.metaUnidadesAA||0),d.metaUnidadesAA||1)>=0?'pos':'neg'}">${fmtPct(pct(d.metaUnidades-(d.metaUnidadesAA||0),d.metaUnidadesAA||1))}</span>`,
+      fmtU(d.ytdUnidades),
+      `<span class="${(d.cumU||0)>=100?'pos':(d.cumU||0)>=95?'warn':'neg'}">${(d.cumU||0).toFixed(1)}%</span>`,
+      `<span class="${(d.gapU||0)>=0?'pos':'neg'}">${fmtU(Math.abs(d.gapU||0))}</span>`,
+      fmtU(d.avgDiaU||0),
+      `<span style="color:#888">${fmtU(d.projU_pr||0)}</span>`,
+      `<span style="color:var(--green)">${fmtU(d.projU_se||0)}</span>`,
+      `<span style="color:#bc8cff">${fmtU(d.projU_mo||0)}</span>`,
+      `<strong style="color:#f0b429">${fmtU(d.projU||0)}</strong>`,
+      `<span class="${(d.cumProjU||0)>=100?'pos':(d.cumProjU||0)>=95?'warn':'neg'}">${(d.cumProjU||0).toFixed(1)}%</span>`,
+      fmtU(d.bbGapU||0),fmtU(d.bbUnidades||0),
+      `<span class="${(d.bbCovU||0)>=95?'pos':(d.bbCovU||0)>=80?'warn':'neg'}">${(d.bbCovU||0).toFixed(0)}%</span>`,
+      `<strong>${fmtU(d.cierreU||0)}</strong>`,
+      `<span class="${(d.cumCierreU||0)>=100?'pos':(d.cumCierreU||0)>=95?'warn':'neg'}">${(d.cumCierreU||0).toFixed(1)}%</span>`,
+      `<span class="${(d.crecCierreU||0)>=0?'pos':'neg'}">${fmtPct(d.crecCierreU||0)}</span>`,
+      fmtN(d.ppuCierre||0),
+    ];
+  } else {
+    cells=[fmtN(d.ppuAA||0),fmtN(d.ppuMeta||0),
+      `<span class="${(d.ppuMeta||0)-(d.ppuAA||0)>=0?'pos':'neg'}">${fmtPct(pct((d.ppuMeta||0)-(d.ppuAA||0),d.ppuAA||1))}</span>`,
+      fmtN(d.ppuYTD||0),'—','—','—','—','—','—','—','—','—','—','—',fmtN(d.ppuCierre||0),'—','—','—'];
+  }
+  const oc=onclick?`style="cursor:pointer" onclick="${onclick}"`:'';
+  let html=`<tr ${oc}><td class="country-name">${flag?`<span style="margin-right:5px">${flag}</span>`:''}${label} <span style="font-size:13px">${semV}</span></td>`;
+  cells.forEach((c,i)=>html+=`<td class="${colSeq[i]||''} num">${c}</td>`);
+  return html+'</tr>';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RENDER REGIONAL
+// ══════════════════════════════════════════════════════════════════════
+function renderRegional(){
+  const corp=calcCorp(null);
+  const camas=calcBU('camas'),retail=calcBU('retail'),comp=calcBU('complementos');
+  const upd=(id,d)=>{
+    document.getElementById(`kpi-${id}-val`).textContent=fmtN(d.ytdValores);
+    document.getElementById(`kpi-${id}-uni`).textContent=`${fmtU(d.ytdUnidades)} unidades`;
+    const c=document.getElementById(`kpi-${id}-cum`);
+    c.textContent=`${(d.cumV||0).toFixed(1)}% MTD`;
+    c.className=(d.cumV||0)>=100?'pos':(d.cumV||0)>=95?'warn':'neg';
+    document.getElementById(`kpi-${id}-gap`).textContent=`Cierre: ${(d.cumCierreV||0).toFixed(1)}%`;
+    document.getElementById(`sem-${id}`).textContent=semaforo(d.cumCierreV||0);
+  };
+  upd('corp',corp);upd('camas',camas);upd('retail',retail);upd('comp',comp);
+
+  // Country nav
+  const buToUse=currentBU==='corp'?null:currentBU;
+  document.getElementById('country-nav').innerHTML=COUNTRIES.map(c=>{
+    const d=buToUse?derive(DATA[c.id][buToUse],c.id):calcCorp(c.id);
+    const cum=(d.cumCierreV||0);
+    return `<div class="country-btn" onclick="goCountry('${c.id}')">
+      <span class="cflag">${c.flag}</span>
+      <div class="cname">${c.name}</div>
+      <div class="cpct ${cum>=100?'pos':cum>=95?'warn':'neg'}">${cum.toFixed(1)}%</div>
+    </div>`;
+  }).join('');
+  document.getElementById('active-bu-label').textContent=BU_LABELS[currentBU];
+  document.getElementById('table-bu-label').textContent=BU_LABELS[currentBU];
+
+  // Table
+  document.getElementById('regional-thead').innerHTML=buildHeaders(currentMetric);
+  let tbody='';
+  COUNTRIES.forEach(c=>{
+    const d=currentBU==='corp'?calcCorp(c.id):derive(DATA[c.id][currentBU],c.id);
+    tbody+=buildRow(c.name,c.flag,d,currentMetric,`goCountry('${c.id}')`);
+  });
+  const totD=currentBU==='corp'?calcCorp(null):calcBU(currentBU);
+  tbody+=buildRow('TOTAL REGIONAL','📊',totD,currentMetric);
+  document.getElementById('regional-tbody').innerHTML=tbody;
+
+  renderBBTable();
+  renderBI();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RENDER COUNTRY
+// ══════════════════════════════════════════════════════════════════════
+function renderCountry(cid,buId){
+  const country=COUNTRIES.find(c=>c.id===cid);
+  document.getElementById('dp-country').textContent=country.name;
+  document.getElementById('dp-bu').textContent=BU_LABELS[buId||'corp'];
+  document.getElementById('country-table-title').textContent=`${country.flag} ${country.name}`;
+
+  // KPI cards per BU
+  document.getElementById('country-kpi-grid').innerHTML=['corp',...BUS].map(bu=>{
+    const d=bu==='corp'?calcCorp(cid):derive(DATA[cid][bu],cid);
+    const cls=bu==='corp'?'corp':bu;
+    return `<div class="kpi-card ${cls}">
+      <div class="kpi-sem">${semaforo(d.cumCierreV||0)}</div>
+      <div class="kpi-lbl">${BU_LABELS[bu]}</div>
+      <div class="kpi-val">${fmtN(d.ytdValores)}</div>
+      <div style="font-size:10px;color:var(--muted)">${fmtU(d.ytdUnidades)} unidades</div>
+      <div class="kpi-sub">
+        <span class="${(d.cumV||0)>=100?'pos':(d.cumV||0)>=95?'warn':'neg'}">${(d.cumV||0).toFixed(1)}% MTD</span>
+        <span class="${(d.cumCierreV||0)>=100?'pos':(d.cumCierreV||0)>=95?'warn':'neg'}">Blend: ${(d.cumCierreV||0).toFixed(1)}%</span>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-top:3px">
+        PR:${fmtN(d.projV_pr||0)} | SE:${fmtN(d.projV_se||0)} | MO:${fmtN(d.projV_mo||0)}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Channel table
+  const activeBU=buId||'camas';
+  const baseD=derive(DATA[cid][activeBU],cid);
+  document.getElementById('channel-thead').innerHTML=buildHeaders(channelMetric);
+  const chRows=country.channels.map(ch=>{
+    const f=0.15+Math.random()*0.7;
+    const n=country.channels.length;
+    const cr={
+      metaUnidades:Math.round(baseD.metaUnidades*f/n),
+      metaValores:Math.round(baseD.metaValores*f/n),
+      metaUnidadesAA:Math.round(baseD.metaUnidadesAA*f/n),
+      metaValoresAA:Math.round(baseD.metaValoresAA*f/n),
+      ytdUnidades:Math.round(baseD.ytdUnidades*f/n),
+      ytdValores:Math.round(baseD.ytdValores*f/n),
+      bbUnidades:Math.round((baseD.bbUnidades||0)*f/n),
+      bbValores:Math.round((baseD.bbValores||0)*f/n),
+      ytdInicioSemana_u:Math.round((baseD.ytdInicioSemana_u||0)*f/n),
+      ytdInicioSemana_v:Math.round((baseD.ytdInicioSemana_v||0)*f/n),
+      diasSemana:baseD.diasSemana||3,
+      diasHabil:periodDias.actual,diasTotal:periodDias.total
+    };
+    return buildRow(ch,'',derive(cr,cid),channelMetric);
+  }).join('');
+  document.getElementById('channel-tbody').innerHTML=chRows+buildRow(`TOTAL ${country.name}`,country.flag,baseD,channelMetric);
+
+  renderInsights(cid,activeBU);
+  renderControlChart(cid,activeBU);
+}
+
+function renderInsights(cid,buId){
+  const d=derive(DATA[cid][buId],cid);
+  const avg3m=d.avgDiaV*(1+(Math.random()-.5)*.12);
+  const variTend=pct(d.avgDiaV-avg3m,avg3m);
+  const ins=[
+    {title:'1. Venta Promedio YTD',color:'#388bfd',rows:[
+      ['Promedio Diario ($)',fmtN(d.avgDiaV||0)],
+      ['Promedio Semanal ($)',fmtN((d.avgDiaV||0)*5)],
+      ['Promedio Mensual ($)',fmtN((d.avgDiaV||0)*22)],
+      ['Promedio Diario (U)',fmtU(d.avgDiaU||0)],
+    ]},
+    {title:'2. Promedio Últimos 3 Meses',color:'#3fb950',rows:[
+      ['Mes actual ($)',fmtN(d.ytdValores)],
+      ['Promedio 3M ($)',fmtN(avg3m*(d.da||12))],
+      ['Variación %',`<span class="${variTend>=0?'pos':'neg'}">${fmtPct(variTend)}</span>`],
+      ['Tendencia',variTend>=3?'<span class="pos">▲ Creciendo</span>':variTend<=-3?'<span class="neg">▼ Deteriorando</span>':'<span class="warn">→ Estable</span>'],
+    ]},
+    {title:'3. Comparativo 3 Métodos',color:'#f0b429',rows:[
+      ['Pro-rata ($)',`<span style="color:#888">${fmtN(d.projV_pr||0)}</span>`],
+      ['Estacional ($)',`<span style="color:var(--green)">${fmtN(d.projV_se||0)}</span>`],
+      ['Momentum ($)',`<span style="color:#bc8cff">${fmtN(d.projV_mo||0)}</span>`],
+      ['Blend Promedio ($)',`<strong style="color:#f0b429">${fmtN(d.projV||0)}</strong>`],
+    ]},
+    {title:'4. Control Estadístico',color:'#bc8cff',rows:[
+      ['Promedio mensual YTD ($)',fmtN((d.avgDiaV||0)*22)],
+      ['Límite Superior +10%',fmtN((d.avgDiaV||0)*22*1.10)],
+      ['Límite Inferior -10%',fmtN((d.avgDiaV||0)*22*0.90)],
+      ['Puntos fuera de control',Math.random()>.7?'<span class="neg">1 detectado ⚠</span>':'<span class="pos">Ninguno ✓</span>'],
+    ]},
+  ];
+  document.getElementById('country-insights').innerHTML=ins.map(i=>`
+    <div class="insight-card">
+      <div class="insight-title"><span class="dot" style="background:${i.color}"></span>${i.title}</div>
+      ${i.rows.map(([l,v])=>`<div class="insight-row"><span style="color:var(--muted);font-size:11px">${l}</span><span style="font-size:12px;font-weight:600">${v}</span></div>`).join('')}
+    </div>`).join('');
+}
+
+function renderControlChart(cid,buId){
+  const d=derive(DATA[cid][buId],cid);
+  const avg=(d.avgDiaV||0)*22;
+  const months=['Ene','Feb','Mar','Abr','May','Jun'];
+  const actual=months.map(()=>Math.round(avg*(0.88+Math.random()*.28)));
+  if(controlChartInstance)controlChartInstance.destroy();
+  const ctx=document.getElementById('control-chart').getContext('2d');
+  controlChartInstance=new Chart(ctx,{type:'line',data:{labels:months,datasets:[
+    {label:'Lím. Superior',data:actual.map(()=>Math.round(avg*1.10)),borderColor:'rgba(248,81,73,.4)',borderDash:[4,4],pointRadius:0,fill:false,tension:0},
+    {label:'Promedio',data:actual.map(()=>Math.round(avg)),borderColor:'rgba(88,166,255,.5)',borderDash:[2,2],pointRadius:0,fill:false,tension:0},
+    {label:'Lím. Inferior',data:actual.map(()=>Math.round(avg*.90)),borderColor:'rgba(248,81,73,.4)',borderDash:[4,4],pointRadius:0,fill:false,tension:0},
+    {label:'Venta Real',data:actual,borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,.12)',pointRadius:4,pointBackgroundColor:actual.map(v=>v>avg*1.1||v<avg*.9?'#f85149':'#3fb950'),fill:true,tension:.3},
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#7d8590',font:{size:10}},position:'bottom'}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#7d8590',font:{size:10}}},
+            y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#7d8590',font:{size:10},callback:v=>fmtN(v)}}}}});
+}
+
+function renderBI(){
+  const sorted=COUNTRIES.map(c=>{const d=calcCorp(c.id);return{...c,cum:d.cumCierreV||0,gap:d.gapV||0};}).sort((a,b)=>b.cum-a.cum);
+  const corp=calcCorp(null);
+  const prob=corp.cumCierreV||0;
+  const probColor=prob>=100?'#3fb950':prob>=95?'#d29922':'#f85149';
+  const cards=[
+    {title:'🔴 En Riesgo',color:'#f85149',content:sorted.filter(c=>c.cum<95).map(c=>`<div class="bi-item"><span>${c.flag} ${c.name}</span><span class="bi-tag bg-red">${c.cum.toFixed(1)}%</span></div>`).join('')||'<div style="color:var(--green);font-size:11px">✅ Sin riesgo crítico</div>'},
+    {title:'🟢 Sobre Meta',color:'#3fb950',content:sorted.filter(c=>c.cum>=100).map(c=>`<div class="bi-item"><span>${c.flag} ${c.name}</span><span class="bi-tag bg-green">${c.cum.toFixed(1)}%</span></div>`).join('')||'<div style="color:var(--yellow);font-size:11px">Ningún país sobre meta aún</div>'},
+    {title:'📊 Probabilidad Regional',color:probColor,content:`
+      <div class="bi-item"><span>Escenario Base</span><span class="bi-tag ${semClass(prob)}">${prob.toFixed(1)}%</span></div>
+      <div class="bi-item"><span>Mejor Escenario</span><span class="bi-tag bg-green">${Math.min(115,prob+8).toFixed(1)}%</span></div>
+      <div class="bi-item"><span>Peor Escenario</span><span class="bi-tag bg-red">${Math.max(70,prob-10).toFixed(1)}%</span></div>
+      <div class="prob-bar"><div class="prob-fill" style="width:${Math.min(100,prob)}%;background:${probColor}"></div></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">Blend: ${fmtN(corp.projV||0)} | Meta: ${fmtN(corp.metaValores||0)}</div>`},
+    {title:'⚡ Building Blocks',color:'#d29922',content:BUS.map(bu=>{const bd=calcBU(bu);return`<div class="bi-item"><span>${BU_LABELS[bu].substring(0,8)}</span><span class="bi-tag ${semClass(bd.bbCovV||0)}">${(bd.bbCovV||0).toFixed(0)}% cub.</span></div>`;}).join('')},
+  ];
+  document.getElementById('bi-grid').innerHTML=cards.map(c=>`<div class="bi-card"><div class="bi-title"><span class="method-dot" style="background:${c.color}"></span>${c.title}</div>${c.content}</div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// BB
+// ══════════════════════════════════════════════════════════════════════
+function bbSem(e){return e==='Confirmado'?'🟢':e==='En gestión'?'🟡':e==='En riesgo'?'🔴':'⚪';}
+function bbCls(e){return e==='Confirmado'?'bg-green':e==='En gestión'?'bg-yellow':'bg-red';}
+
+function renderBBTable(){
+  let rows=BB_DATA;
+  if(bb_active_filter!=='all')rows=rows.filter(b=>b.estado===bb_active_filter);
+  document.getElementById('bb-count-badge').textContent=`${BB_DATA.length} acciones`;
+  if(!rows.length){document.getElementById('bb-tbody').innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Sin building blocks. <button class="btn btn-accent btn-sm" onclick="openBBModal(null)" style="margin-left:8px">+ Agregar</button></td></tr>`;return;}
+  const totU=rows.reduce((s,b)=>s+b.u,0),totV=rows.reduce((s,b)=>s+b.v,0);
+  const html=rows.map(b=>`<tr>
+    <td class="country-name" style="padding-left:10px">${COUNTRIES.find(c=>c.name===b.pais)?.flag||''} ${b.pais}</td>
+    <td style="text-align:left">${b.bu}</td>
+    <td style="text-align:left;max-width:180px;white-space:normal">${b.accion}</td>
+    <td>${b.resp}</td><td>${b.fecha}</td>
+    <td class="num pos">${fmtU(b.u)}</td>
+    <td class="num">${fmtN(b.v)}</td>
+    <td><span style="display:inline-flex;align-items:center;gap:3px">${b.prob}%
+      <span class="bb-cov-bar"><span class="bb-cov-fill" style="width:${b.prob}%;background:${b.prob>=80?'var(--green)':b.prob>=60?'var(--yellow)':'var(--red)'}"></span></span>
+    </span></td>
+    <td><span class="mini-badge ${bbCls(b.estado)}">${bbSem(b.estado)} ${b.estado}</span></td>
+    <td style="white-space:nowrap">
+      <button class="btn-outline" onclick="openBBModal(${b.id})">✏</button>
+      <button class="btn-outline" onclick="deleteBB(${b.id})" style="color:var(--red);border-color:var(--red)">✕</button>
+    </td>
+  </tr>`).join('');
+  document.getElementById('bb-tbody').innerHTML=html+`<tr style="font-weight:700;background:var(--surface2)">
+    <td colspan="5" style="text-align:right;color:var(--muted);font-size:10px">TOTAL ${rows.length} acciones</td>
+    <td class="num pos">${fmtU(totU)}</td><td class="num">${fmtN(totV)}</td>
+    <td colspan="3"></td></tr>`;
+}
+
+function filterBB(f,btn){
+  bb_active_filter=f;
+  document.querySelectorAll('#page-regional .sec-hdr .tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderBBTable();
+}
+
+function openBBModal(id){
+  const b=id?BB_DATA.find(x=>x.id===id):null;
+  document.getElementById('bb-modal-title').textContent=b?'✏ Editar Building Block':'➕ Nuevo Building Block';
+  document.getElementById('bb-edit-id').value=id||'';
+  ['pais','bu','estado','accion','resp','canal','notas'].forEach(f=>document.getElementById('bb-'+f).value=b?.[f]||'');
+  document.getElementById('bb-fecha').value=b?.fecha||'';
+  document.getElementById('bb-u').value=b?.u||'';
+  document.getElementById('bb-v').value=b?.v||'';
+  document.getElementById('bb-prob-range').value=b?.prob??75;
+  document.getElementById('bb-prob-show').textContent=b?.prob??75;
+  document.getElementById('bb-estado').value=b?.estado||'Confirmado';
+  document.getElementById('bb-modal').classList.add('open');
+}
+function closeBBModal(){document.getElementById('bb-modal').classList.remove('open');}
+
+function saveBB(){
+  const id=document.getElementById('bb-edit-id').value;
+  const entry={
+    id:id?parseInt(id):bb_next_id++,
+    pais:document.getElementById('bb-pais').value,
+    bu:document.getElementById('bb-bu').value,
+    accion:document.getElementById('bb-accion').value,
+    canal:document.getElementById('bb-canal').value,
+    resp:document.getElementById('bb-resp').value,
+    fecha:document.getElementById('bb-fecha').value,
+    u:parseFloat(document.getElementById('bb-u').value)||0,
+    v:parseFloat(document.getElementById('bb-v').value)||0,
+    prob:parseFloat(document.getElementById('bb-prob-range').value)||0,
+    estado:document.getElementById('bb-estado').value,
+    notas:document.getElementById('bb-notas').value,
+  };
+  if(!entry.pais||!entry.accion){alert('País e Iniciativa son requeridos.');return;}
+  if(id){const i=BB_DATA.findIndex(b=>b.id===parseInt(id));if(i>=0)BB_DATA[i]=entry;}
+  else BB_DATA.push(entry);
+  localStorage.setItem('torre_bb',JSON.stringify(BB_DATA));
+  closeBBModal();syncBB();
+}
+function deleteBB(id){
+  if(!confirm('¿Eliminar?'))return;
+  BB_DATA=BB_DATA.filter(b=>b.id!==id);
+  localStorage.setItem('torre_bb',JSON.stringify(BB_DATA));
+  syncBB();
+}
+function buKeyFromLabel(l){const s=l.toLowerCase();return s.includes('cama')?'camas':s.includes('retail')?'retail':s.includes('comp')?'complementos':null;}
+function syncBB(){
+  COUNTRIES.forEach(c=>BUS.forEach(bu=>{if(DATA[c.id][bu]){DATA[c.id][bu].bbUnidades=0;DATA[c.id][bu].bbValores=0;}}));
+  BB_DATA.forEach(b=>{
+    const c=COUNTRIES.find(x=>x.name===b.pais);
+    const k=buKeyFromLabel(b.bu);
+    if(c&&k&&DATA[c.id][k]){DATA[c.id][k].bbUnidades+=b.u;DATA[c.id][k].bbValores+=b.v;}
+  });
+  localStorage.setItem('torre_data',JSON.stringify(DATA));
+  renderRegional();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// IMPORT
+// ══════════════════════════════════════════════════════════════════════
+function openImport(){document.getElementById('import-modal').classList.add('open');}
+function closeImport(){document.getElementById('import-modal').classList.remove('open');}
+
+function parseAndLoad(){
+  const raw=document.getElementById('csv-paste').value.trim();
+  if(!raw){alert('Pega los datos primero.');return;}
+  const lines=raw.split('\n').map(l=>l.split('\t').map(c=>c.trim()));
+  const hdr=lines[0].map(h=>h.toLowerCase().replace(/[\s$()]/g,''));
+  const dataRows=lines.slice(1).filter(l=>l.length>=10&&l[0]);
+  if(!dataRows.length){document.getElementById('import-preview').innerHTML='<span class="neg">⚠ No se detectaron filas. Verifica que copiaste desde la fila de encabezados.</span>';return;}
+  const idx={};
+  ['pais','bu','metaunidadesaa','metaunidades','ytdunidades','metavaloresaa','metavalores','ytdvalores','bbunidades','bbvalores','diashabil','diastotal'].forEach((h,i)=>{const p=hdr.indexOf(h);idx[h]=p>=0?p:i;});
+  let ok=0,errs=[];
+  dataRows.forEach((row,ri)=>{
+    try{
+      const pais=row[idx['pais']]?.replace(/['"]/g,'');
+      const bu=row[idx['bu']]?.replace(/['"]/g,'');
+      const country=COUNTRIES.find(c=>c.name.toLowerCase()===pais?.toLowerCase());
+      if(!country){errs.push(`Fila ${ri+2}: país "${pais}" no reconocido`);return;}
+      const buKey=BUS.find(b=>BU_LABELS[b].toLowerCase()===bu?.toLowerCase())||bu?.toLowerCase();
+      if(!DATA[country.id][buKey]){errs.push(`Fila ${ri+2}: BU "${bu}" no encontrada`);return;}
+      const num=v=>parseFloat((v||'0').toString().replace(/[$,\s]/g,''))||0;
+      const r=DATA[country.id][buKey];
+      r.metaUnidadesAA=num(row[idx['metaunidadesaa']]);
+      r.metaUnidades=num(row[idx['metaunidades']]);
+      r.ytdUnidades=num(row[idx['ytdunidades']]);
+      r.metaValoresAA=num(row[idx['metavaloresaa']]);
+      r.metaValores=num(row[idx['metavalores']]);
+      r.ytdValores=num(row[idx['ytdvalores']]);
+      r.bbUnidades=num(row[idx['bbunidades']]);
+      r.bbValores=num(row[idx['bbvalores']]);
+      const dh=num(row[idx['diashabil']]);if(dh)periodDias.actual=dh;
+      const dt=num(row[idx['diastotal']]);if(dt)periodDias.total=dt;
+      ok++;
+    }catch(e){errs.push(`Fila ${ri+2}: ${e.message}`);}
+  });
+  localStorage.setItem('torre_data',JSON.stringify(DATA));
+  const prev=document.getElementById('import-preview');
+  if(ok>0){prev.innerHTML=`<span class="pos">✅ ${ok} filas cargadas.${errs.length?' '+errs.length+' errores.':''}</span>`;
+    setTimeout(()=>{closeImport();renderRegional();document.getElementById('csv-paste').value='';},1000);}
+  else prev.innerHTML=`<span class="neg">⚠ 0 filas cargadas. ${errs.slice(0,3).join(' | ')}</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// DATA MODAL
+// ══════════════════════════════════════════════════════════════════════
+let modalActiveCountry='gt';
+function openModal(){
+  document.getElementById('modal-country-tabs').innerHTML=COUNTRIES.map(c=>`<div class="modal-tab ${c.id==='gt'?'active':''}" onclick="switchModalCountry('${c.id}',this)">${c.flag} ${c.name}</div>`).join('');
+  renderModalForms('gt');
+  document.getElementById('f-mes').value=new Date().toLocaleDateString('es',{month:'long',year:'numeric'});
+  document.getElementById('f-dias-habil').value=periodDias.actual;
+  document.getElementById('f-dias-total').value=periodDias.total;
+  document.getElementById('data-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('data-modal').classList.remove('open');}
+function switchModalCountry(id,btn){
+  modalActiveCountry=id;
+  document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');renderModalForms(id);
+}
+function renderModalForms(cid){
+  let html='';
+  BUS.forEach(bu=>{
+    const r=DATA[cid][bu];
+    html+=`<div class="form-section">📦 ${BU_LABELS[bu]}</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Meta Unidades AA</label><input type="number" id="${bu}_metaUnidadesAA" value="${r.metaUnidadesAA}"></div>
+      <div class="form-group"><label>Meta Unidades Actual</label><input type="number" id="${bu}_metaUnidades" value="${r.metaUnidades}"></div>
+      <div class="form-group"><label>YTD Unidades</label><input type="number" id="${bu}_ytdUnidades" value="${r.ytdUnidades}"></div>
+      <div class="form-group"><label>Meta Valores AA $</label><input type="number" id="${bu}_metaValoresAA" value="${r.metaValoresAA}"></div>
+      <div class="form-group"><label>Meta Valores Actual $</label><input type="number" id="${bu}_metaValores" value="${r.metaValores}"></div>
+      <div class="form-group"><label>YTD Valores $</label><input type="number" id="${bu}_ytdValores" value="${r.ytdValores}"></div>
+    </div>
+    <div class="form-section" style="font-size:10px">🟣 Momentum Semanal — ${BU_LABELS[bu]}</div>
+    <div class="form-grid">
+      <div class="form-group"><label>YTD Inicio Semana (Unidades)</label><input type="number" id="${bu}_ytdInicioSemana_u" value="${r.ytdInicioSemana_u||0}"></div>
+      <div class="form-group"><label>YTD Inicio Semana (Valores $)</label><input type="number" id="${bu}_ytdInicioSemana_v" value="${r.ytdInicioSemana_v||0}"></div>
+      <div class="form-group"><label>Días Transcurridos Esta Semana</label><input type="number" id="${bu}_diasSemana" min="1" max="6" value="${r.diasSemana||3}"></div>
+    </div>`;
+  });
+  document.getElementById('modal-country-forms').innerHTML=html;
+}
+function saveData(){
+  periodDias.actual=parseInt(document.getElementById('f-dias-habil').value)||12;
+  periodDias.total=parseInt(document.getElementById('f-dias-total').value)||22;
+  BUS.forEach(bu=>{
+    const fields=['metaUnidadesAA','metaUnidades','ytdUnidades','metaValoresAA','metaValores','ytdValores',
+                  'ytdInicioSemana_u','ytdInicioSemana_v','diasSemana'];
+    fields.forEach(f=>{const el=document.getElementById(`${bu}_${f}`);if(el)DATA[modalActiveCountry][bu][f]=parseFloat(el.value)||0;});
+  });
+  localStorage.setItem('torre_data',JSON.stringify(DATA));
+  closeModal();renderRegional();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════════
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  if(id==='regional')renderRegional();
+}
+function showBU(bu){currentBU=bu;renderRegional();}
+function goCountry(cid){currentCountry=cid;goPage('country');renderCountry(cid,currentBU==='corp'?null:currentBU);}
+function setView(t,btn){document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentMetric=t==='valores'?'values':'units';renderRegional();}
+function setMetric(m,btn){document.querySelectorAll('#page-regional .tab-bar .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentMetric=m;renderRegional();}
+function setChannelMetric(m,btn){document.querySelectorAll('#page-country .tab-bar .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');channelMetric=m;if(currentCountry)renderCountry(currentCountry,currentBU==='corp'?null:currentBU);}
+
+// ══════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════
+(function init(){
+  const now=new Date();
+  document.getElementById('today-badge').textContent=now.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  const week=Math.ceil(now.getDate()/7);
+  document.getElementById('period-badge').textContent=`Semana ${week} · ${now.toLocaleDateString('es',{month:'long'})} ${now.getFullYear()}`;
+  syncBB();
+})();
+</script>
+</body>
+</html>
